@@ -113,7 +113,7 @@ then
 fi
 
 # Support defining an alternate launch script with env variable NBDCLIENT.
-NBDCLIENT=${NBDCLIENT:-/sbin/nbd-client}
+NBDCLIENT=${NBDCLIENT:-/sbin/cbd-client}
 $NBDCLIENT $nbdsrv -N $nbdpath $nbdport $nbdrootdev -swap -persist -systemd-mark
 
 # This should be removed once the cfq scheduler no longer deadlocks nbd

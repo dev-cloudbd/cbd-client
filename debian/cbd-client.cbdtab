@@ -1,4 +1,4 @@
-# This file configures NBD devices for use with nbd-client.
+# This file configures NBD devices for use with cbd-client.
 # Its fields are:
 #
 # device server_hostname_or_ip exportname [options]

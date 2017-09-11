@@ -1,0 +1,7 @@
+etc/cloudbd/cbdtab
+sbin/nbd-client /sbin/cbd-client
+usr/share/man/man8/nbd-client.8 /usr/share/man/man8/cbd-client.8
+usr/share/man/man5/nbdtab.5 /usr/share/man/man5/cbdtab.5
+usr/share/initramfs-tools
+systemd/nbd@.service /lib/systemd/system/cbd@.service
+
