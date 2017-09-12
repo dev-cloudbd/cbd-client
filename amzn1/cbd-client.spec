@@ -26,7 +26,6 @@ remote block devices over a TCP/IP network.
 %license COPYING
 %{_mandir}/man*/nbd*
 %{_sbindir}/nbd-client
-%{_unitdir}/nbd@.service
 
 %changelog
 * Tue Sep 12 2017 Shaun McDowell <smcdowell@cloudbd.io> - 3.15.2-1
