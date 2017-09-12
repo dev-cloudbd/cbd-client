@@ -22,3 +22,10 @@ Description: Network Block Device protocol - client
  .
  This package provides the client binary for NBD.
 
+Package: cbd-client-dbg
+Architecture: linux-any
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}
+Description: debugging symbols for cbd-client
+ cbd-client debug symbols
