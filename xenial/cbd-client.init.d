@@ -17,7 +17,7 @@
 # Default-Start: S
 # Default-Stop: 0 6
 # X-Start-Before: mountnfs
-# Short-Description: Network Block Device client
+# Short-Description: CloudBD, LLC modified Network Block Device client
 ### END INIT INFO
 #
 # Version:	@(#)skeleton  1.8  03-Mar-1998  miquels@cistron.nl
@@ -25,7 +25,7 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON="/sbin/cbd-client"
 NAME="cbd-client"
-DESC="NBD client process"
+DESC="CBD client process"
 
 test -x $DAEMON || exit 0
 
@@ -38,7 +38,7 @@ case "$1" in
 	echo -n 'Connecting...'
 	for dev in $(awk '/^(( \t)*[^#])/{print $1}' /etc/cloudbd/cbdtab)
 	do
-	  # cfq deadlocks NBD devices, so switch to something else if cfq is
+	  # cfq deadlocks CBD devices, so switch to something else if cfq is
 	  # selected by default
 	  # This doesn't take into account non-udev devnames, but since
 	  # there's really no other option these days...
@@ -83,7 +83,6 @@ case "$1" in
 	do
 	  cbd-client -d /dev/$dev
 	done
-	rmmod nbd
 	echo "$NAME."
 	;;
     restart|force-reload)

@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+# Uncomment this to turn on verbose mode. 
+export DH_VERBOSE=1
+
+DEB_HOST_GNU_SYSTEM := $(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
+
+%:
+	dh $@
+
+override_dh_auto_test:
+
+override_dh_auto_configure: debian/po/templates.pot
+	test -f nbd.h
+	if [ -d .git ]; then test $$(git status --porcelain | wc -l) -le 0; fi
+	dh_auto_configure -- --enable-lfs --enable-syslog \
+			--prefix=/ --mandir=/usr/share/man
+
+override_dh_auto_install:
+	make -j1 install DESTDIR=$$(pwd)/debian/tmp AM_UPDATE_INFO_DIR=no
+
+
+override_dh_install:
+	install -d debian/tmp/etc/cloudbd
+	install -d debian/tmp/lib/systemd/system/cbd-client.service.d
+	install -m 644 debian/cbd-client.cbdtab debian/tmp/etc/cloudbd/cbdtab
+	install -m 644 debian/cbd-client.systemd-extra debian/tmp/lib/systemd/system/cbd-client.service.d/after-nbd-client.conf
+	dh_install -s
+
+override_dh_installinit:
+	dh_installinit -p cbd-client --no-start -- start 41 S . stop 34 0 6 .
+

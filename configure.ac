@@ -1,7 +1,7 @@
 dnl Configure script for NBD system
 dnl (c) 1998 Martin Mares <mj@ucw.cz>, (c) 2000 Pavel Machek <pavel@ucw.cz>,
 dnl (c) 2003-2006 Wouter Verhelst <wouter@debian.org>
-AC_INIT([nbd],
+AC_INIT([cbd-client],
   [3.15.2],
   [wouter@debian.org],,
   [http://nbd.sourceforge.net/])
@@ -11,7 +11,7 @@ m4_define([serial_tests], [
               awk '{split ($NF,a,"."); if (a[1] == 1 && a[2] >= 12) { print "serial-tests" }}'
   ])
 ])
-AM_INIT_AUTOMAKE(foreign dist-xz serial_tests subdir-objects)
+AM_INIT_AUTOMAKE(foreign serial_tests subdir-objects)
 AM_MAINTAINER_MODE([enable])
 AC_CONFIG_MACRO_DIR([support])
 LT_INIT
