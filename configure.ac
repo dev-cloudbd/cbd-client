@@ -3,16 +3,10 @@ dnl (c) 1998 Martin Mares <mj@ucw.cz>, (c) 2000 Pavel Machek <pavel@ucw.cz>,
 dnl (c) 2003-2006 Wouter Verhelst <wouter@debian.org>
 dnl (c) 2017 CloudBD, LLC
 AC_INIT([cbd-client],
-  [3.15.2],
+  [3.15.3],
   [smcdowell@cloudbd.io],,
   [https://www.github.com/dev-cloudbd/cbd-client/])
-m4_define([serial_tests], [
-  m4_esyscmd([automake --version |
-              head -1 |
-              awk '{split ($NF,a,"."); if (a[1] == 1 && a[2] >= 12) { print "serial-tests" }}'
-  ])
-])
-AM_INIT_AUTOMAKE(foreign serial_tests subdir-objects)
+AM_INIT_AUTOMAKE(foreign subdir-objects)
 AM_MAINTAINER_MODE([enable])
 AC_CONFIG_MACRO_DIR([support])
 LT_INIT
@@ -30,8 +24,7 @@ AC_CHECK_SIZEOF(unsigned int)
 AC_CHECK_SIZEOF(unsigned long int)
 AC_CHECK_SIZEOF(unsigned long long int)
 AC_STRUCT_DIRENT_D_TYPE
-AC_CHECK_FUNCS([alarm gethostbyname inet_ntoa memset socket strerror strstr mkstemp])
-dnl HAVE_FL_PH=no
+AC_CHECK_FUNCS([inet_ntoa memset socket strerror strstr mkstemp])
 
 PKG_CHECK_MODULES(GnuTLS, [gnutls >= 2.12.0],[HAVE_GNUTLS=1],[HAVE_GNUTLS=0])
 if test x$HAVE_GNUTLS = x1; then
@@ -40,12 +33,6 @@ else
 	AC_DEFINE(HAVE_GNUTLS, 0)
 fi
 AM_CONDITIONAL([GNUTLS], [test "x$HAVE_GNUTLS" = "x1"])
-
-AC_CHECK_HEADERS([winioctl.h], [], [],
-[#include <io.h>
-#include <windef.h>
-#include <winbase.h>
-])
 
 AC_FUNC_FORK
 AC_FUNC_SETVBUF_REVERSED
@@ -76,13 +63,12 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 	]
 )
 CFLAGS="$my_save_cflags"
-
+NBD_LFS=1
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"'"
 AC_SUBST(AM_CPPFLAGS)
-AM_CONDITIONAL(GZNBD, [test "x$ENABLE_GZNBD" = "xyes"])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
 		 doc/Doxyfile
