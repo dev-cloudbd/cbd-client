@@ -1,9 +1,0 @@
-country = GB
-state = London
-locality = London
-organization = Name of your organization
-cn = localhost
-tls_www_client
-encryption_key
-signing_key
-expiration_days = 3650
