@@ -1,4 +1,4 @@
 CBD-CLIENT README
 ==========
 
-A fork of the NetworkBlockDevice/nbd github repository customized for use by CloudBD devices
+client for connecting CloudBD device servers to kernel module nbd devices (/dev/nbd*)
