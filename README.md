@@ -3,7 +3,7 @@ CBD-CLIENT README
 
 client for connecting CloudBD device servers to kernel module nbd devices (/dev/nbd\*)
 
-####Build Requires: 
+### Build Requires: 
 - libglib2.0-devel
 - libgnutls28-devel
 - docbook-utils
@@ -11,7 +11,7 @@ client for connecting CloudBD device servers to kernel module nbd devices (/dev/
 - automake
 - make
 
-####Build steps:
+### Build steps:
 ```
 ./autogen.sh
 ./configure
