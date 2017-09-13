@@ -452,10 +452,10 @@ void negotiate(int *sockp, u64 *rsize64, uint16_t *flags, char* name, uint32_t n
 }
 
 bool get_from_config(char* cfgname, char** name_ptr, char** dev_ptr, char** hostn_ptr, int* bs, int* timeout, int* persist, int* swap, int* sdp, int* b_unix, char**port, int* num_conns, char **certfile, char **keyfile, char **cacertfile, char **tlshostname) {
-	int fd = open(SYSCONFDIR "/nbdtab", O_RDONLY);
+	int fd = open(SYSCONFDIR "/cloudbd/cbdtab", O_RDONLY);
 	bool retval = false;
 	if(fd < 0) {
-		fprintf(stderr, "while opening %s: ", SYSCONFDIR "/nbdtab");
+		fprintf(stderr, "while opening %s: ", SYSCONFDIR "/cloudbd/cbdtab");
 		perror("could not open config file");
 		goto out;
 	}
@@ -466,7 +466,7 @@ bool get_from_config(char* cfgname, char** name_ptr, char** dev_ptr, char** host
 	char *lsep = "\n#";
 
 	if(size < 0) {
-		perror("E: mmap'ing nbdtab");
+		perror("E: mmap'ing cbdtab");
 		exit(EXIT_FAILURE);
 	}
 
@@ -564,7 +564,7 @@ bool get_from_config(char* cfgname, char** name_ptr, char** dev_ptr, char** host
 		l = strcspn(loc, ",");
 		if(*loc != '_') {
 			char* s = strndup(loc, l);
-			fprintf(stderr, "Warning: unknown option '%s' found in nbdtab file", s);
+			fprintf(stderr, "Warning: unknown option '%s' found in cbdtab file", s);
 			free(s);
 		}
 		loc += l;
@@ -667,15 +667,15 @@ void usage(char* errmsg, ...) {
 		vfprintf(stderr, tmp, ap);
 		va_end(ap);
 	} else {
-		fprintf(stderr, "nbd-client version %s\n", PACKAGE_VERSION);
+		fprintf(stderr, "cbd-client version %s\n", PACKAGE_VERSION);
 	}
-	fprintf(stderr, "Usage: nbd-client -name|-N name host [port] nbd_device\n\t[-block-size|-b block size] [-timeout|-t timeout] [-swap|-s] [-sdp|-S]\n\t[-persist|-p] [-nofork|-n] [-systemd-mark|-m]\n");
-	fprintf(stderr, "Or   : nbd-client -u (with same arguments as above)\n");
-	fprintf(stderr, "Or   : nbd-client nbdX\n");
-	fprintf(stderr, "Or   : nbd-client -d nbd_device\n");
-	fprintf(stderr, "Or   : nbd-client -c nbd_device\n");
-	fprintf(stderr, "Or   : nbd-client -h|--help\n");
-	fprintf(stderr, "Or   : nbd-client -l|--list host\n");
+	fprintf(stderr, "Usage: cbd-client -name|-N name host [port] nbd_device\n\t[-block-size|-b block size] [-timeout|-t timeout] [-swap|-s] [-sdp|-S]\n\t[-persist|-p] [-nofork|-n] [-systemd-mark|-m]\n");
+	fprintf(stderr, "Or   : cbd-client -u (with same arguments as above)\n");
+	fprintf(stderr, "Or   : cbd-client nbdX\n");
+	fprintf(stderr, "Or   : cbd-client -d nbd_device\n");
+	fprintf(stderr, "Or   : cbd-client -c nbd_device\n");
+	fprintf(stderr, "Or   : cbd-client -h|--help\n");
+	fprintf(stderr, "Or   : cbd-client -l|--list host\n");
 #if HAVE_GNUTLS && !defined(NOTLS)
 	fprintf(stderr, "All commands that connect to a host also take:\n\t[-F|-certfile certfile] [-K|-keyfile keyfile]\n\t[-A|-cacertfile cacertfile] [-H|-tlshostname hostname] [-x|-enable-tls]\n");
 #endif
@@ -1001,7 +1001,7 @@ int main(int argc, char *argv[]) {
 			int error = errno;
 			fprintf(stderr, "nbd,%d: Kernel call returned: %d", main_pid, error);
 			if(error==EBADR) {
-				/* The user probably did 'nbd-client -d' on us.
+				/* The user probably did 'cbd-client -d' on us.
 				 * quit */
 				cont=0;
 			} else {

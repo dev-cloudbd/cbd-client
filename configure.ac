@@ -69,13 +69,14 @@ AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"'"
 AC_SUBST(AM_CPPFLAGS)
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([Makefile
 		 doc/Doxyfile
 		 doc/Makefile
 		 man/Makefile
 		 man/nbd-client.8.sh
 		 man/nbdtab.5.sh
+		 src/Makefile
 		 systemd/Makefile
 		 systemd/nbd@.service.sh
 		])
