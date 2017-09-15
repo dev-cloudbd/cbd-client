@@ -1,7 +1,14 @@
-# This file configures NBD devices for use with cbd-client.
+# This file configures CloudBD NBD devices for use with cbd-client.
 # Its fields are:
 #
-# device server_hostname_or_ip exportname [options]
+# nbd_dev	[remote:]device_id	[options]
 #
-# For more information, see nbdtab(5)
+# For more information, see cbdtab(5)
 # This default configuration has no devices configured.
+#
+# Example: bind remote=default device_id=testdisk to /dev/nbd0
+# nbd0		testdisk
+#
+# Example: bind remote=rem1 device_id=testdisk2 to /dev/nbd1 with options
+# nbd1		rem1:testdisk2		bs=4096,timeout=10
+

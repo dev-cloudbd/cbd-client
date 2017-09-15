@@ -22,10 +22,10 @@ remote block devices over a TCP/IP network.
 %make_install
 
 %files
-%doc README.md doc/proto.md doc/todo.txt
 %license COPYING
-%{_mandir}/man*/nbd*
-%{_sbindir}/nbd-client
+%{_mandir}/man*/cbd*
+%{_sbindir}/cbd-client
+%config(noreplace) %{_sysconfdir}/cloudbd/cbdtab
 
 %changelog
 * Tue Sep 12 2017 Shaun McDowell <smcdowell@cloudbd.io> - 3.15.2-1
