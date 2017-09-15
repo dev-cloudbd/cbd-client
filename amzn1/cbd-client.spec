@@ -26,6 +26,8 @@ remote block devices over a TCP/IP network.
 %{_mandir}/man*/cbd*
 %{_sbindir}/cbd-client
 %config(noreplace) %{_sysconfdir}/cloudbd/cbdtab
+%{_libdir}/udev/cloudbd_id
+%{_libdir}/udev/rules.d/99-cbd.rules
 
 %changelog
 * Tue Sep 12 2017 Shaun McDowell <smcdowell@cloudbd.io> - 3.15.2-1

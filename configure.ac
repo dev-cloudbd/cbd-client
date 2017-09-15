@@ -51,9 +51,17 @@ CFLAGS="$my_save_cflags"
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
+
+if test "$prefix" = "/usr" -o "$prefix" = "/usr/local" -o "$prefix" = "NONE"; then
+        AC_SUBST([udevdir], ["$( pkg-config --variable=udevdir udev )/"])
+else
+        AC_SUBST([udevdir], ["$prefix/lib/udev/"])
+fi
+
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$runstatedir\"'"
 AC_SUBST(AM_CPPFLAGS)
-AC_CONFIG_HEADERS([src/config.h])
+AC_CONFIG_SRCDIR([src/nbd.h])
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
 		 doc/Doxyfile
 		 doc/Makefile
@@ -64,6 +72,8 @@ AC_CONFIG_FILES([Makefile
 		 sysconf/Makefile
 		 systemd/Makefile
 		 systemd/cbd@.service.sh
+		 udev/cloudbd_id
+		 udev/Makefile
 		])
 AC_OUTPUT
 
