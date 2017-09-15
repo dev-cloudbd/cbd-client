@@ -2,7 +2,7 @@ Source: cbd-client
 Section: admin
 Priority: optional
 Maintainer: Shaun McDowell <smcdowell@cloudbd.io>
-Build-Depends: debhelper (>= 9), libglib2.0-dev (>= 2.26.0), libgnutls28-dev
+Build-Depends: debhelper (>= 9), libglib2.0-dev (>= 2.26.0)
 Standards-Version: 3.9.4
 Homepage: https://cloudbd.io/
 
