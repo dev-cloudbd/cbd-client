@@ -13,9 +13,9 @@ override_dh_strip:
 	dh_strip --dbg-package=cbd-client-dbg
 
 override_dh_auto_configure: debian/po/templates.pot
-	test -f nbd.h
+	test -f src/nbd.h
 	if [ -d .git ]; then test $$(git status --porcelain | wc -l) -le 0; fi
-	dh_auto_configure -- --enable-lfs --enable-syslog \
+	dh_auto_configure -- --enable-syslog \
 			--prefix=/ --mandir=/usr/share/man
 
 override_dh_install:
