@@ -18,30 +18,31 @@
  *	Suriya Soutmun <darksolar@gmail.com>
  */
 
+#define MY_NAME "cbd_client"
+
 #include "config.h"
-#include "lfs.h"
+#include "cliserv.h"
+
+#include <netinet/in.h>
 
 #include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <syslog.h>
-#include <stdlib.h>
 #include <sys/mount.h>
-#include <sys/mman.h>
-#include <signal.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <syslog.h>
 #include <time.h>
-
-#include <linux/ioctl.h>
-#define MY_NAME "cbd_client"
-#include "cliserv.h"
+#include <unistd.h>
 
 #ifndef SYSCONFDIR
 #define SYSCONFDIR "/etc"
@@ -122,7 +123,7 @@ int openunix(const char *remote_name, const char *device_name)
         return -1;
     };
 
-    if (connect(sock, &un_addr, sizeof(un_addr)) == -1)
+    if (connect(sock, (struct sockaddr*) &un_addr, sizeof(un_addr)) == -1)
     {
         err_nonfatal("CONNECT failed");
         close(sock);
@@ -251,10 +252,10 @@ void ask_list(int sock)
         err("Failed writing length");
 }
 
-void negotiate(int *sockp, u64 *rsize64, uint16_t *flags, char* name, uint32_t needed_flags,
+void negotiate(int *sockp, uint64_t *rsize64, uint16_t *flags, char* name, uint32_t needed_flags,
         uint32_t client_flags, uint32_t do_opts)
 {
-    u64 magic, size64;
+    uint64_t magic, size64;
     uint16_t tmp;
     uint16_t global_flags;
     char buf[256] = "\0\0\0\0\0\0\0\0\0";
@@ -311,7 +312,7 @@ void negotiate(int *sockp, u64 *rsize64, uint16_t *flags, char* name, uint32_t n
     opt = ntohl(NBD_OPT_EXPORT_NAME);
     if (write(sock, &opt, sizeof(opt)) < 0)
         err("Failed/2.3: %m");
-    namesize = (u32) strlen(name);
+    namesize = (uint32_t) strlen(name);
     namesize = ntohl(namesize);
     if (write(sock, &namesize, sizeof(namesize)) < 0)
         err("Failed/2.4: %m");
@@ -523,7 +524,7 @@ bool get_from_config(char* cfgname, char** nbddev_ptr, char** remote_name_ptr, c
     return retval;
 }
 
-void setsizes(int nbd, u64 size64, int blocksize, u32 flags)
+void setsizes(int nbd, uint64_t size64, int blocksize, uint32_t flags)
 {
     unsigned long size;
     int read_only = (flags & NBD_FLAG_READ_ONLY) ? 1 : 0;
@@ -533,14 +534,14 @@ void setsizes(int nbd, u64 size64, int blocksize, u32 flags)
     else
     {
         int tmp_blocksize = 4096;
-        if (size64 / (u64) blocksize <= (uint64_t) ~0UL)
+        if (size64 / (uint64_t) blocksize <= (uint64_t) ~0UL)
             tmp_blocksize = blocksize;
         if (ioctl(nbd, NBD_SET_BLKSIZE, tmp_blocksize) < 0)
         {
             fprintf(stderr, "Failed to set blocksize %d\n", tmp_blocksize);
             err("Ioctl/1.1a failed: %m\n");
         }
-        size = (unsigned long) (size64 / (u64) tmp_blocksize);
+        size = (unsigned long) (size64 / (uint64_t) tmp_blocksize);
         if (ioctl(nbd, NBD_SET_SIZE_BLOCKS, size) < 0)
             err("Ioctl/1.1b failed: %m\n");
         if (tmp_blocksize != blocksize)
@@ -551,7 +552,7 @@ void setsizes(int nbd, u64 size64, int blocksize, u32 flags)
                 err("Ioctl/1.1c failed: %m\n");
             }
         }
-        fprintf(stderr, "bs=%d, sz=%llu bytes\n", blocksize, (u64) tmp_blocksize * size);
+        fprintf(stderr, "bs=%d, sz=%llu bytes\n", blocksize, (unsigned long long) tmp_blocksize * size);
     }
 
     ioctl(nbd, NBD_CLEAR_SOCK);
@@ -634,7 +635,7 @@ int main(int argc, char *argv[])
     int timeout = 0;
     int nofork = 0; // if -f NOFORK
     pid_t main_pid;
-    u64 size64;
+    uint64_t size64;
     uint16_t flags = 0;
     int c;
     int nonspecial = 0;

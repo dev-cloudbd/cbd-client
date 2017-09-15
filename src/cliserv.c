@@ -1,19 +1,22 @@
-#include <config.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <syslog.h>
-#include <unistd.h>
-#include <stdint.h>
+#include "config.h"
+#include "cliserv.h"
+
 #include <netdb.h>
 #include "netdb-compat.h"
-#include <sys/types.h>
+
 #include <sys/socket.h>
+#include <sys/types.h>
 
-#include <cliserv.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 
-const u64 cliserv_magic = 0x00420281861253LL;
-const u64 opts_magic = 0x49484156454F5054LL;
-const u64 rep_magic = 0x3e889045565a9LL;
+const uint64_t cliserv_magic = 0x00420281861253LL;
+const uint64_t opts_magic = 0x49484156454F5054LL;
+const uint64_t rep_magic = 0x3e889045565a9LL;
 
 /**
  * Set a socket to blocking or non-blocking
@@ -76,8 +79,8 @@ uint64_t ntohll(uint64_t a) {
 }
 #else
 uint64_t ntohll(uint64_t a) {
-	u32 lo = a & 0xffffffff;
-	u32 hi = a >> 32U;
+	uint32_t lo = a & 0xffffffff;
+	uint32_t hi = a >> 32U;
 	lo = ntohl(lo);
 	hi = ntohl(hi);
 	return ((uint64_t) lo) << 32U | hi;

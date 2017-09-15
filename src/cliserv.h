@@ -13,44 +13,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-
-#if SIZEOF_UNSIGNED_SHORT_INT==4
-typedef unsigned short u32;
-#elif SIZEOF_UNSIGNED_INT==4
-typedef unsigned int u32;
-#elif SIZEOF_UNSIGNED_LONG_INT==4
-typedef unsigned long u32;
-#else
-#error I need at least some 32-bit type
-#endif
-
-#if SIZEOF_UNSIGNED_INT==8
-typedef unsigned int u64;
-#elif SIZEOF_UNSIGNED_LONG_INT==8
-typedef unsigned long u64;
-#elif SIZEOF_UNSIGNED_LONG_LONG_INT==8
-typedef unsigned long long u64;
-#else
+#ifndef UINT64_MAX
 #error I need at least some 64-bit type
 #endif
 
-#define __be32 u32
-#define __be64 u64
+#define __be32 uint32_t
+#define __be64 uint64_t
 #include "nbd.h"
-
-#ifndef HAVE_FDATASYNC
-#define fdatasync(arg) fsync(arg)
-#endif
-
-#if NBD_LFS==1
-/* /usr/include/features.h (included from /usr/include/sys/types.h)
-   defines this when _GNU_SOURCE is defined
- */
-#ifndef _LARGEFILE_SOURCE
-#define _LARGEFILE_SOURCE
-#endif
-#define _FILE_OFFSET_BITS 64
-#endif
 
 #ifndef G_GNUC_NORETURN
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
@@ -62,9 +31,9 @@ typedef unsigned long long u64;
 #endif
 #endif
 
-extern const u64 cliserv_magic;
-extern const u64 opts_magic;
-extern const u64 rep_magic;
+extern const uint64_t cliserv_magic;
+extern const uint64_t opts_magic;
+extern const uint64_t rep_magic;
 
 #define INIT_PASSWD "NBDMAGIC"
 

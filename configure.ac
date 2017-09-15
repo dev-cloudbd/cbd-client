@@ -12,7 +12,6 @@ AC_CONFIG_MACRO_DIR([support])
 LT_INIT
 
 AC_PROG_CC_C99
-AC_PROG_CPP
 AC_PROG_INSTALL
 PKG_PROG_PKG_CONFIG
 AC_CANONICAL_HOST
@@ -23,22 +22,14 @@ AC_CHECK_SIZEOF(unsigned short int)
 AC_CHECK_SIZEOF(unsigned int)
 AC_CHECK_SIZEOF(unsigned long int)
 AC_CHECK_SIZEOF(unsigned long long int)
-AC_STRUCT_DIRENT_D_TYPE
-AC_CHECK_FUNCS([inet_ntoa memset socket strerror strstr mkstemp])
-
-PKG_CHECK_MODULES(GnuTLS, [gnutls >= 2.12.0],[HAVE_GNUTLS=1],[HAVE_GNUTLS=0])
+AC_CHECK_FUNCS([memset socket strerror strstr])
 
 AC_FUNC_FORK
 AC_FUNC_SETVBUF_REVERSED
 CBD_CLIENT_NAME="cbd-client"
-AM_CONDITIONAL(CLIENT, [test ! -z "$CBD_CLIENT_NAME"])
 AC_SEARCH_LIBS(bind, socket,, AC_MSG_ERROR([Could not find an implementation of the bind() system call]))
-AC_SEARCH_LIBS(inet_ntoa, nsl,, AC_MSG_ERROR([Could not find an implementation of the inet_ntoa() system call]))
 AC_SEARCH_LIBS(daemon, resolv,, AC_MSG_ERROR([Could not find an implementation of the daemon() system call]))
-AC_CHECK_HEADERS([sys/mount.h],,,
-[[#include <sys/param.h>
-]])
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h sys/ioctl.h sys/socket.h syslog.h linux/types.h sys/dirent.h])
+AC_CHECK_HEADERS([fcntl.h netdb.h netinet/in.h sys/ioctl.h sys/mount.h sys/socket.h sys/types.h sys/un.h syslog.h])
 AM_PATH_GLIB_2_0(2.26.0, [HAVE_GLIB=yes], AC_MSG_ERROR([Missing glib]), gthread)
 
 my_save_cflags="$CFLAGS"
@@ -57,7 +48,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
 	]
 )
 CFLAGS="$my_save_cflags"
-NBD_LFS=1
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
@@ -68,11 +58,12 @@ AC_CONFIG_FILES([Makefile
 		 doc/Doxyfile
 		 doc/Makefile
 		 man/Makefile
-		 man/nbd-client.8.sh
-		 man/nbdtab.5.sh
+		 man/cbd-client.8.sh
+		 man/cbdtab.5.sh
 		 src/Makefile
+		 sysconf/Makefile
 		 systemd/Makefile
-		 systemd/nbd@.service.sh
+		 systemd/cbd@.service.sh
 		])
 AC_OUTPUT
 

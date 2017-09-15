@@ -18,14 +18,8 @@ override_dh_auto_configure: debian/po/templates.pot
 	dh_auto_configure -- --enable-lfs --enable-syslog \
 			--prefix=/ --mandir=/usr/share/man
 
-override_dh_auto_install:
-	make -j1 install DESTDIR=$$(pwd)/debian/tmp AM_UPDATE_INFO_DIR=no
-
-
 override_dh_install:
-	install -d debian/tmp/etc/cloudbd
 	install -d debian/tmp/lib/systemd/system/cbd-client.service.d
-	install -m 644 debian/cbd-client.cbdtab debian/tmp/etc/cloudbd/cbdtab
 	install -m 644 debian/cbd-client.systemd-extra debian/tmp/lib/systemd/system/cbd-client.service.d/after-nbd-client.conf
 	dh_install -s
 

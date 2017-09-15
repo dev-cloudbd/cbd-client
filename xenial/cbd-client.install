@@ -1,8 +1,6 @@
-#!/usr/bin/dh-exec
-sbin/nbd-client => /sbin/cbd-client
-usr/share/man/man8/nbd-client.8 => /usr/share/man/man8/cbd-client.8
-usr/share/man/man5/nbdtab.5 => /usr/share/man/man5/cbdtab.5
-systemd/nbd@.service => /lib/systemd/system/cbd@.service
-
+sbin/cbd-client
 etc/cloudbd/cbdtab
+usr/share/man/man8/cbd-client.8
+usr/share/man/man5/cbdtab.5
+systemd/cbd@.service /lib/systemd/system
 lib/systemd/system/cbd-client.service.d/after-nbd-client.conf
