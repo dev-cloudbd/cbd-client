@@ -1,9 +1,0 @@
-language: c
-os:
-  - linux
-compiler:
-  - clang
-  - gcc
-install: 
-  - sh .travis/before_install
-script: ./autogen.sh && dpkg-buildpackage -rfakeroot -uc -us -i -I.git
