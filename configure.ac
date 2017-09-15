@@ -27,17 +27,11 @@ AC_STRUCT_DIRENT_D_TYPE
 AC_CHECK_FUNCS([inet_ntoa memset socket strerror strstr mkstemp])
 
 PKG_CHECK_MODULES(GnuTLS, [gnutls >= 2.12.0],[HAVE_GNUTLS=1],[HAVE_GNUTLS=0])
-if test x$HAVE_GNUTLS = x1; then
-	AC_DEFINE(HAVE_GNUTLS, 1, [Define to 1 if you have a GnuTLS version of 2.12 or above])
-else
-	AC_DEFINE(HAVE_GNUTLS, 0)
-fi
-AM_CONDITIONAL([GNUTLS], [test "x$HAVE_GNUTLS" = "x1"])
 
 AC_FUNC_FORK
 AC_FUNC_SETVBUF_REVERSED
-NBD_CLIENT_NAME="nbd-client"
-AM_CONDITIONAL(CLIENT, [test ! -z "$NBD_CLIENT_NAME"])
+CBD_CLIENT_NAME="cbd-client"
+AM_CONDITIONAL(CLIENT, [test ! -z "$CBD_CLIENT_NAME"])
 AC_SEARCH_LIBS(bind, socket,, AC_MSG_ERROR([Could not find an implementation of the bind() system call]))
 AC_SEARCH_LIBS(inet_ntoa, nsl,, AC_MSG_ERROR([Could not find an implementation of the inet_ntoa() system call]))
 AC_SEARCH_LIBS(daemon, resolv,, AC_MSG_ERROR([Could not find an implementation of the daemon() system call]))
@@ -67,7 +61,7 @@ NBD_LFS=1
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
-AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"'"
+AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$runstatedir\"'"
 AC_SUBST(AM_CPPFLAGS)
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([Makefile

@@ -11,10 +11,8 @@
 
 #include <errno.h>
 #include <string.h>
-#include <netdb.h>
-#include <netinet/tcp.h>
-#include <netinet/in.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #if SIZEOF_UNSIGNED_SHORT_INT==4
 typedef unsigned short u32;
@@ -73,7 +71,6 @@ extern const u64 rep_magic;
 #define INFO(a) do { } while(0)
 
 int set_nonblocking(int fd, int nb);
-void setmysockopt(int sock);
 void err_nonfatal(const char *s);
 
 void err(const char *s) G_GNUC_NORETURN;
@@ -89,14 +86,10 @@ uint64_t ntohll(uint64_t a);
 
 void readit(int f, void *buf, size_t len);
 
-#define NBD_DEFAULT_PORT	"10809"	/* Port on which named exports are
-					 * served */
-
 /* Options that the client can select to the server */
 #define NBD_OPT_EXPORT_NAME	(1)	/** Client wants to select a named export (is followed by name of export) */
 #define NBD_OPT_ABORT		(2)	/** Client wishes to abort negotiation */
 #define NBD_OPT_LIST		(3)	/** Client request list of supported exports (not followed by data) */
-#define NBD_OPT_STARTTLS	(5)	/** Client wishes to initiate TLS */
 
 /* Replies the server can send during negotiation */
 #define NBD_REP_ACK		(1)	/** ACK a request. Data: option number to be acked */

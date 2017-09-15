@@ -3,11 +3,13 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <stdint.h>
+#include <netdb.h>
+#include "netdb-compat.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 
 #include <cliserv.h>
-#include <nbd-debug.h>
 
 const u64 cliserv_magic = 0x00420281861253LL;
 const u64 opts_magic = 0x49484156454F5054LL;
@@ -25,25 +27,6 @@ int set_nonblocking(int fd, int nb) {
 	if (sf == -1)
 		return -1;
 	return fcntl (fd, F_SETFL, nb ? (sf | O_NONBLOCK) : (sf & ~O_NONBLOCK));
-}
-
-
-void setmysockopt(int sock) {
-	int size = 1;
-#if 0
-	if (setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int)) < 0)
-		 INFO("(no sockopt/1: %m)");
-#endif
-#ifdef	IPPROTO_TCP
-	size = 1;
-	if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &size, sizeof(int)) < 0)
-		 INFO("(no sockopt/2: %m)");
-#endif
-#if 0
-	size = 1024;
-	if (setsockopt(sock, IPPROTO_TCP, TCP_MAXSEG, &size, sizeof(int)) < 0)
-		 INFO("(no sockopt/3: %m)");
-#endif
 }
 
 void err_nonfatal(const char *s) {
@@ -112,7 +95,6 @@ uint64_t ntohll(uint64_t a) {
 void readit(int f, void *buf, size_t len) {
 	ssize_t res;
 	while (len > 0) {
-		DEBUG("*");
 		res = read(f, buf, len);
 		if (res > 0) {
 			len -= res;
