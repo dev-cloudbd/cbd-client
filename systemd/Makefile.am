@@ -1,6 +1,6 @@
 #if SYSTEMD
 #systemdunitdir = $(DESTDIR)/$(SYSTEMDLOC)
-#systemdunit_DATA = nbd@.service
+#systemdunit_DATA = cbd@.service
 #endif
 
 noinst_DATA = cbd@.service

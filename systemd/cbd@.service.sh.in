@@ -6,13 +6,13 @@ sysconfdir=@sysconfdir@
 
 cat <<EOF
 [Unit]
-Description=NBD client connection for %i
-Documentation=man:nbd-client
-PartOf=nbd.service
+Description=CloudBD NBD client connection for %i
+Documentation=man:cbd-client
+PartOf=cbd.service
 Before=dev-%i.device
 [Service]
 Type=forking
-ExecStart=@sbindir@/nbd-client %i
+ExecStart=@sbindir@/cbd-client %i
 [Install]
 RequiredBy=dev-%i.device
 EOF

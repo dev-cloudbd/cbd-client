@@ -96,22 +96,16 @@ int check_conn(char* devname, int do_print)
     return 0;
 }
 
-int openunix(const char *remote_name, const char *device_name)
+int openunix(const char *device_name)
 {
     int sock;
-    size_t remote_name_size, device_name_size, offset;
     struct sockaddr_un un_addr;
     memset(&un_addr, 0, sizeof(un_addr));
 
     un_addr.sun_family = AF_UNIX;
 
-    // unix domain socket path = "RUNSTATEDIR/cloudbd/<remote_name>/<device_name>.socket"
-    remote_name_size = strnlen(remote_name, sizeof(un_addr.sun_path));
-    device_name_size = strnlen(device_name, sizeof(un_addr.sun_path));
-
-    fprintf(stderr, "DEBUG remote=%s, device=%s\n", remote_name, device_name);
-
-    if (snprintf(un_addr.sun_path, sizeof un_addr.sun_path, "%s/cloudbd/%s/%s.socket", RUNSTATEDIR, remote_name, device_name) >= sizeof un_addr.sun_path)
+    // unix domain socket path = "RUNSTATEDIR/cloudbd/<remote_id:device_id>.socket"
+    if (snprintf(un_addr.sun_path, sizeof un_addr.sun_path, RUNSTATEDIR "/cloudbd/%s.socket", device_name) >= sizeof un_addr.sun_path)
     {
         err_nonfatal("UNIX socket path too long");
         return -1;
@@ -123,7 +117,7 @@ int openunix(const char *remote_name, const char *device_name)
         return -1;
     };
 
-    if (connect(sock, (struct sockaddr*) &un_addr, sizeof(un_addr)) == -1)
+    if (connect(sock, &un_addr, sizeof(un_addr)) == -1)
     {
         err_nonfatal("CONNECT failed");
         close(sock);
@@ -342,19 +336,18 @@ void negotiate(int *sockp, uint64_t *rsize64, uint16_t *flags, char* name, uint3
     *rsize64 = size64;
 }
 
-bool get_from_config(char* cfgname, char** nbddev_ptr, char** remote_name_ptr, char** device_name_ptr,
-        int* bs, int* timeout, int* connections)
+bool get_from_config(char* cfgname, char** nbddev_ptr, char** device_name_ptr)
 {
     bool retval = false;
     bool fail = false;
     char *data = NULL;
-    char *nbd_ptr, *cbd_ptr, *rem_ptr, *line, *nextline, *opt_ptr;
+    char *nbd_ptr, *cbd_ptr, *id_ptr, *line, *nextline, *opt_ptr;
     off_t size;
 
     int fd = open(SYSCONFDIR "/cloudbd/cbdtab", O_RDONLY);
     if (fd < 0)
     {
-        fprintf(stderr, "while opening %s: ", SYSCONFDIR "/cloudbd/cbdtab");
+        fprintf(stderr, "while opening " SYSCONFDIR "/cloudbd/cbdtab: ");
         perror("could not open config file");
         goto out;
     }
@@ -438,44 +431,37 @@ bool get_from_config(char* cfgname, char** nbddev_ptr, char** remote_name_ptr, c
     *nbddev_ptr = malloc(l);
     snprintf(*nbddev_ptr, l, "/dev/%s", cfgname);
 
-    rem_ptr = strsep(&cbd_ptr, ":");
-    if (!cbd_ptr || strlen(rem_ptr) == 0) // no remote or empty remote found, use default remote
-    {
-        *remote_name_ptr = strdup("default");
-        *device_name_ptr = strdup(rem_ptr);
-    }
-    else if (strlen(cbd_ptr) > 0)
-    {
-        *remote_name_ptr = strdup(rem_ptr);
-        *device_name_ptr = strdup(cbd_ptr);
-    }
-    else // found ':' with nothing after it
+    const char *sep = strchr(cbd_ptr, ':');
+    if (!sep || sep == cbd_ptr || strnlen(sep + 1, 1) == 0) // no remote or empty remote found or empty device found
     {
         fprintf(stderr, "found %s in cbdtab with invalid config", cfgname);
         fail = true;
         goto out;
     }
 
+    *device_name_ptr = strdup(cbd_ptr);
     retval = true;
 
+    /*
     // get third field
     do
     {
         opt_ptr = strsep(&line, " \t");
     } while(opt_ptr && strlen(opt_ptr) == 0);
 
+    // third field is the options field, currently no options for client, a comma-separated field of options
     if (!opt_ptr)
         goto out; // not an error, options field is not required
 
-    // third field is the options field, a comma-separated field of options
     do
     {
-        if (!strncmp(opt_ptr, "conns=", 6))
+        if (!strncmp(opt_ptr, "connections=", 12))
         {
-            *connections = (int) strtol(opt_ptr + 6, &opt_ptr, 0);
+            //
+            strtol(opt_ptr + 12, &opt_ptr, 0);
             goto next;
         }
-        if (!strncmp(opt_ptr, "bs=", 3))
+        if (!strncmp(opt_ptr, "block_bufferss=", 3))
         {
             *bs = (int) strtol(opt_ptr + 3, &opt_ptr, 0);
             goto next;
@@ -504,6 +490,7 @@ bool get_from_config(char* cfgname, char** nbddev_ptr, char** remote_name_ptr, c
             opt_ptr++;
         }
     } while (strlen(opt_ptr) > 0);
+    */
 
     out:
     if (data != NULL)
@@ -758,8 +745,7 @@ int main(int argc, char *argv[])
         {
             if (!strncmp(device_name, "nbd", 3) || !strncmp(device_name, "/dev/nbd", 8))
             {
-                if (!get_from_config(device_name, &nbddev, &remote_name, &device_name,
-                        &blocksize, &timeout, &num_connections))
+                if (!get_from_config(device_name, &nbddev, &device_name))
                 {
                     usage("no valid configuration for specified device found", device_name);
                     exit(EXIT_FAILURE);
@@ -787,7 +773,7 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < num_connections; i++)
     {
-        sock = openunix(remote_name, device_name);
+        sock = openunix(device_name);
         if (sock < 0)
             exit(EXIT_FAILURE);
 

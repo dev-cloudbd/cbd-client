@@ -12,3 +12,5 @@ client_libs = libcliserv.la
 cbd_client_SOURCES = $(client_srcs)
 cbd_client_CFLAGS = $(client_flags)
 cbd_client_LDADD = $(client_libs)
+
+CLEANFILES = *~ 
