@@ -1,5 +1,6 @@
 sbin/cbd-client
 etc/cloudbd/cbdtab
+etc/init.d/cloudbd
 usr/share/man/man8/cbd-client.8
 usr/share/man/man5/cbdtab.5
 lib/udev/cloudbd_id

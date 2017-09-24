@@ -1,0 +1,126 @@
+#!/bin/sh
+# vim: ft=sh
+#
+# skeleton      example file to build /etc/init.d/ scripts.
+#               This file should be used to construct scripts for /etc/init.d.
+#
+#               Written by Miquel van Smoorenburg <miquels@cistron.nl>.
+#               Modified for Debian GNU/Linux
+#               by Ian Murdock <imurdock@gnu.ai.mit.edu>.
+#               Modified for the nbd-client package
+#               by Wouter Verhelst <wouter@debian.org>
+#
+### BEGIN INIT INFO
+# Provides: cloudbd
+# Required-Start: $network $local_fs $syslog
+# Required-Stop: $network
+# Default-Start: S
+# Default-Stop: 0 6
+# X-Start-Before: $remote_fs
+# X-Stop-After: $remote_fs 
+# Short-Description: CloudBD Virtual Block Devices
+### END INIT INFO
+#
+# Version:      @(#)skeleton  1.8  03-Mar-1998  miquels@cistron.nl
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+SERVER="$(which cbdkit 2>/dev/null)"
+CLIENT="$(which cbd-client 2>/dev/null)"
+NAME="cloudbd"
+USER="cloudbd"
+GROUP="cloudbd"
+EXPORT="cloudbd"
+CONFIGFILE="/etc/cloudbd/cbdtab"
+RUNDIR="/var/run/cloudbd"
+DESC="CloudBD Virtual Disks"
+
+test -x "$SERVER" -a -x "$CLIENT" || exit 0
+
+case "$1" in
+    connect)
+        # I don't use start-stop-daemon: cbd-client only does some setup
+        # for the connection; the 'nbd-client' you see in your ps output
+        # later on is a kernel thread...
+        modprobe nbd
+        echo -n 'Connecting...'
+        cbdtab_valid_regex='^[[:blank:]]*(nbd[[:digit:]]+)[[:blank:]]+([[:alnum:]_-]+:[[:alnum:]_-]+)[[:blank:]]*([[:alpha:]]+=[[:alnum:]]+(,[[:alpha:]]+=[[:alnum:]]+)*)?[[:blank:]]*(#.*)?$'
+        cbdtab_empty_regex='^[[:blank:]]*(#.*)?$'
+
+        lineno=0
+        while read -r line
+        do
+            lineno=$((lineno + 1))
+            if echo "${line}" | grep -Evq "${cbdtab_empty_regex}"
+            then
+                if echo "${line}" | grep -Eq "${cbdtab_valid_regex}"
+                then
+                    dev=$(echo $line | sed -rn "s/${valid_regex}/\1/p")
+                    disk=$(echo $line | sed -rn "s/${valid_regex}/\2/p")
+                    opts=$(echo $line | sed -rn "s/${valid_regex}/\3/p" | sed 's/,/ /g')
+
+                    # cfq deadlocks NBD devices, so switch to something else if cfq is
+                    # selected by default
+                    # This doesn't take into account non-udev devnames, but since
+                    # there's really no other option these days...
+                    if grep '\[cfq\]' "/sys/block/${dev}/queue/scheduler" >/dev/null; then
+                        echo deadline > "/sys/block/${dev}/queue/scheduler"
+                    fi
+
+                    if cbd-client -c "${dev}" >/dev/null
+                    then
+                        echo "${dev} already connected, skipping..."
+                    else
+                        rm -f "${RUNDIR}/${disk}.socket"
+                        ${SERVER} -e "${EXPORT}" -u "${USER}" -g "${GROUP}" -U "${RUNDIR}/${disk}.socket" "${NAME}" device="${disk}" ${opts} --run "${CLIENT} -f ${disk} ${dev}"
+                    fi
+                else
+                    echo "bad config found at '${CONFIGFILE}':line ${lineno}"
+                fi
+            fi
+        done < ${CONFIGFILE}
+        ;;
+    start)
+        echo -n "Starting $DESC: "
+        $0 connect
+        if [ ! -f /run/sendsigs.omit.d/cbd-client ]
+        then
+          for x in $(cat /proc/cmdline); do
+            case $x in
+              nbdroot=*,*,*)
+                nbdroot="${x#nbdroot=}"
+                nbdbasedev=$(echo "$nbdroot" | sed -e 's/^.*,//')
+                nbdrootdev=/dev/$nbdbasedev
+                ;;
+              root=/dev/nbd*)
+                nbdrootdev="${x#root=}"
+                ;;
+            esac
+          done
+          OMITKILL="$OMITKILL ${nbdrootdev%p*}"
+          for x in $OMITKILL
+          do
+            cbd-client -c $x >> /run/sendsigs.omit.d/cbd-client
+          done
+        fi
+        ;;
+    stop)
+        echo "Stopping $DESC: "
+        for dev in $(awk '/^(( \t)*[^#])/{print $1}' /etc/cloudbd/cbdtab)
+        do
+          cbd-client -d /dev/$dev
+        done
+        echo "$NAME."
+        ;;
+    restart|force-reload)
+        $0 stop
+        sleep 10
+        $0 start
+        ;;
+    *)
+        N=/etc/init.d/$NAME
+        echo "Usage: $N {start|connect|stop|restart|force-reload}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
