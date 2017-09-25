@@ -54,9 +54,9 @@ case "$1" in
             then
                 if echo "${line}" | grep -Eq "${cbdtab_valid_regex}"
                 then
-                    dev=$(echo $line | sed -rn "s/${valid_regex}/\1/p")
-                    disk=$(echo $line | sed -rn "s/${valid_regex}/\2/p")
-                    opts=$(echo $line | sed -rn "s/${valid_regex}/\3/p" | sed 's/,/ /g')
+                    dev=$(echo $line | sed -rn "s/${cbdtab_valid_regex}/\1/p")
+                    disk=$(echo $line | sed -rn "s/${cbdtab_valid_regex}/\2/p")
+                    opts=$(echo $line | sed -rn "s/${cbdtab_valid_regex}/\3/p" | sed 's/,/ /g')
 
                     # cfq deadlocks NBD devices, so switch to something else if cfq is
                     # selected by default

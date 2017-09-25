@@ -587,14 +587,13 @@ void usage(char* errmsg, ...)
     {
         fprintf(stderr, "cbd-client version %s\n", PACKAGE_VERSION);
     }
-    fprintf(stderr, "Usage: cbd-client [remote:]name nbd_device [-foreground|-f]\n");
+    fprintf(stderr, "Usage: cbd-client remote:disk nbd_device [-foreground|-f]\n");
     fprintf(stderr, "Or   : cbd-client nbdX\n");
     fprintf(stderr, "Or   : cbd-client -d|--disconnect nbd_device\n");
     fprintf(stderr, "Or   : cbd-client -c|--check nbd_device\n");
     fprintf(stderr, "Or   : cbd-client -l|--list [remote:]name\n");
     fprintf(stderr, "Or   : cbd-client -h|--help\n");
     fprintf(stderr, "Or   : cbd-client -V|--version\n");
-    fprintf(stderr, "Default value for remote is \"default\".\n");
 }
 
 void disconnect(char* device)
@@ -616,8 +615,8 @@ int main(int argc, char *argv[])
 {
     int sock, nbd;
     int blocksize = 4096;
-    char *remote_name = NULL;
     char *device_name = NULL;
+    const char *sep;
     char *nbddev = NULL;
     int timeout = 0;
     int nofork = 0; // if -f NOFORK
@@ -676,22 +675,13 @@ int main(int argc, char *argv[])
             {
             case 0:
                 // [remote_name:]device_name
-                remote_name = strsep(&optarg, ":");
-                device_name = optarg;
-                if (device_name == NULL)
+                sep = strchr(optarg, ':');
+                if (!sep || sep == optarg || strnlen(sep + 1, 1) == 0) // no remote or empty remote found or empty device found
                 {
-                    device_name = remote_name;
-                    remote_name = "default";
-                }
-                else if (strlen(remote_name) == 0)
-                {
-                    remote_name = "default";
-                }
-                if (strlen(device_name) == 0)
-                {
-                    usage("missing cloudbd device name");
+                    usage("bad or missing cloudbd disk name");
                     exit(EXIT_FAILURE);
                 }
+                device_name = optarg;
 
                 break;
             case 1:
