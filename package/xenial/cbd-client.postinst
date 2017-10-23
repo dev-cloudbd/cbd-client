@@ -1,0 +1,19 @@
+#!/bin/sh
+
+case "$1" in
+    configure)
+        adduser --quiet --system --group --no-create-home cloudbd
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        # We need not do anything.
+        ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 0
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
