@@ -16,13 +16,11 @@ override_dh_auto_configure: debian/po/templates.pot
 	test -f src/nbd.h
 	if [ -d .git ]; then test $$(git status --porcelain | wc -l) -le 0; fi
 	dh_auto_configure -- --enable-syslog \
-			--prefix=/ --mandir=/usr/share/man
+			--prefix="" --mandir=/usr/share/man
 
 override_dh_install:
-	install -d debian/tmp/lib/systemd/system/cbd-client.service.d
-	install -m 644 debian/cbd-client.systemd-extra debian/tmp/lib/systemd/system/cbd-client.service.d/after-nbd-client.conf
 	dh_install -s
 
 override_dh_installinit:
-	dh_installinit -p cbd-client --no-start -- start 41 S . stop 34 0 6 .
+	dh_installinit -p cbddisks --no-start -- start 41 S . stop 34 0 6 .
 

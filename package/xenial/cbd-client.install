@@ -1,9 +1,16 @@
 sbin/cbd-client
+sbin/cbddisks_start
+sbin/cbddisks_stop
 etc/cloudbd/cbdtab
-etc/init.d/cloudbd
+etc/init.d/cbddisks
 usr/share/man/man8/cbd-client.8
 usr/share/man/man5/cbdtab.5
-lib/udev/cloudbd_id
+lib/udev/cbd_id
+lib/udev/cbd_dmsetup
 lib/udev/rules.d/99-cbd.rules
-systemd/cbd@.service /lib/systemd/system
-lib/systemd/system/cbd-client.service.d/after-nbd-client.conf
+lib/cbdsetup/cbdsetup.functions
+lib/systemd/system/cbdsetup@.service
+lib/systemd/system/cbdsetup.target
+lib/systemd/system/cbdsetup-pre.target
+lib/systemd/system-generators/cbdsetup-generator
+usr/lib/tmpfiles.d/cbd.conf
