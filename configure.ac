@@ -110,8 +110,6 @@ AC_CONFIG_FILES([Makefile
 		 man/cbd-client.8.sh
 		 man/cbdtab.5.sh
 		 src/Makefile
-		 sysconf/init.d/Makefile
-		 sysconf/Makefile
 		 system/Makefile
 		 system/cbdsetup@.service.sh
 		 system/cbdsetup-generator.sh
