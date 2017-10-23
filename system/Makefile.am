@@ -17,7 +17,7 @@ udev_rules_dir = $(prefix)/$(udevdir)/rules.d
 udev_rules__DATA = 99-cbd.rules
 
 sbin_SCRIPTS = cbddisks_start cbddisks_stop
-cbdsetup_dir = $(libdir)/cbdsetup
+cbdsetup_dir = $(prefix)/lib/cbdsetup
 cbdsetup__DATA = cbdsetup.functions
 
 EXTRA_DIST = \

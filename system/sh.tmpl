@@ -3,10 +3,10 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 sysconfdir=@sysconfdir@
-libdir=@libdir@
+libdir=$prefix/lib
 sbindir=@sbindir@
 localstatedir=@localstatedir@
 runstatedir=@runstatedir@
-systemdunit=@systemdunitdir@
+systemdunit=$prefix/@systemdunitdir@
 
 cat <<EOF
