@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# if no arg exit with 1
+[ -n "\$1" ] || exit 1
+
+. $libdir/cbdsetup/cbdsetup.functions
+
+# sanity checks
+[ -x $sbindir/cloudbd ] || exit 0
+
+# int cloudbd_id (string nbd)
+do_id () {
+    local NBD CBD OPTS
+
+    # Lookup the CBD remote:disk info from cbdtab
+    if ! parse_nbd "\$1" || ! get_cbdtab_line_by_nbd "\$NBD" || ! parse_cbd "\$CBD"; then
+        return 0
+    fi
+   
+    # Validate CBD is connected to NBD
+    if ! cbd-client -l "\$CBD" 2>/dev/null | grep -q "^\$NBD\$"; then
+        return 0;
+    fi
+
+    # Get the device parameters
+    $sbindir/cloudbd -e info "\$CBD" 2>/dev/null
+    [ \$? -eq 0 ] && echo "CBD_SCANNED=1"
+
+    return 0
+}
+
+do_id "\$@"
+

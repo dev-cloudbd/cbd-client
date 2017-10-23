@@ -1,0 +1,64 @@
+#!/bin/sh
+
+. $libdir/cbdsetup/cbdsetup.functions
+
+usage () {
+    cat <<-EOF
+	Usage: cbddisks_stop [-f] CBD [CBD]...   stop one or more CloudBD disks
+	       cbddisks_stop -a [-f]             stop all CloudBD disks
+
+	       CBD := remote:disk                an active CloudBD disk
+
+	Stop CloudBD disks utility
+	-a, --all                     stop all disks
+	-f, --force                   force a disk closed even if in use (*WARN: see below)
+	-h, --help                    display this help and exit
+
+	* Warning: forcing an active disk to stop will attempt to unmount
+	           filesystems, deactivate lvm logical volumes, close crypto disks,
+	           and stop partitions that are using this CBD disk. 
+	EOF
+}
+
+main () {
+    local cbds="" param all
+
+    for param in "\$@"; do
+        case "\$param" in
+        -h|-help|--help)
+            usage
+            exit 0
+            ;;
+        -a|-all|--all)
+            all="yes"
+            ;;
+        -f|-force|--force)
+            FORCE_STOP="yes"
+            ;;
+        -*)
+            >&2 echo "\$0: error - invalid option -- '\$param'"
+            >&2 echo "Try '\$0 --help' for more info"
+            exit 1
+            ;;
+        *)
+            cbds="\$cbds \$param"
+            ;;
+        esac
+    done
+
+    if [ "x\$all" = "xyes" ] && [ ! "x\$cbds" = "x" ]; then
+        >&2 echo "\$0: error - all disks option specified, no CBD disk arguments expected"
+        >&2 echo "Try '\$0 --help' for more info"
+        exit 1
+    elif [ ! "x\$all" = "xyes" ] && [ "x\$cbds" = "x" ]; then
+        >&2 echo "\$0: error - no disks specified"
+        >&2 echo "Try '\$0 --help' for more info"
+        exit 1
+    fi
+
+    do_stop \$cbds
+    exit \$?
+}
+
+main "\$@"
+

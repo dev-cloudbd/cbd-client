@@ -52,10 +52,51 @@ AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 
-if test "$prefix" = "/usr" -o "$prefix" = "/usr/local" -o "$prefix" = "NONE"; then
-        AC_SUBST([udevdir], ["$( pkg-config --variable=udevdir udev )/"])
+
+AC_MSG_CHECKING([where to put udev files])
+PKG_CHECK_VAR([UDEVDIR],[udev],[udevdir],[AC_SUBST([udevdir], [$UDEVDIR])])
+if test -z $udevdir; then
+	AC_MSG_ERROR([not found])
 else
-        AC_SUBST([udevdir], ["$prefix/lib/udev/"])
+	AC_MSG_RESULT([found])
+fi
+
+dnl if test "$prefix" = "/usr" -o "$prefix" = "/usr/local" -o "$prefix" = "NONE"; then
+dnl        AC_SUBST([UDEVDIR], ["$( pkg-config --variable=udevdir udev )/"])
+dnl else
+dnl        AC_SUBST([UDEVDIR], ["$prefix/lib/udev/"])
+dnl fi
+
+AC_MSG_CHECKING([where to put systemd unit files])
+AC_ARG_ENABLE([systemd],
+	AS_HELP_STRING([--enable-systemd],[Install systemd files using pkg-config to detect the correct location and install there.]),
+	[
+	  case "x${enableval}" in
+	    xyes) SYSTEMD_ENABLED=yes ;;
+	    xno)  SYSTEMD_ENABLED=no ;;
+	    *)   AC_MSG_ERROR([bad value ${enableval} for --enable-systemd]) ;;
+	  esac
+	],
+	[SYSTEMD_ENABLED=no])
+
+if test "x$SYSTEMD_ENABLED" = "xyes"; then
+	PKG_CHECK_VAR([SYSTEMDUNIT],[systemd],[systemdsystemunitdir],[AC_SUBST([systemdunitdir], [$SYSTEMDUNIT])])
+	PKG_CHECK_VAR([SYSTEMDGEN],[systemd],[systemdsystemgeneratordir],[AC_SUBST([systemdgendir], [$SYSTEMDGEN])])
+fi
+
+AM_CONDITIONAL([SYSTEMD], [test ! -z "$SYSTEMDUNIT" && test ! -z "$SYSTEMDGEN"])
+
+if test "x$SYSTEMD_ENABLED" = "xyes" && test -n $systemdunitdir && test -n $systemdgendir; then
+	AC_MSG_RESULT([enabled])
+else
+	case $SYSTEMD_ENABLED in
+		yes)
+			AC_MSG_ERROR([systemd not found])
+		;;
+		*)
+			AC_MSG_RESULT([disabled])
+		;;
+	esac
 fi
 
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$runstatedir\"'"
@@ -71,10 +112,15 @@ AC_CONFIG_FILES([Makefile
 		 src/Makefile
 		 sysconf/init.d/Makefile
 		 sysconf/Makefile
-		 systemd/Makefile
-		 systemd/cbd@.service.sh
-		 udev/cloudbd_id
-		 udev/Makefile
+		 system/Makefile
+		 system/cbdsetup@.service.sh
+		 system/cbdsetup-generator.sh
+		 system/cbd_id.sh
+		 system/cbd_dmsetup.sh
+		 system/cbddisks.sh
+		 system/cbddisks_start.sh
+		 system/cbddisks_stop.sh
+		 system/cbdsetup.functions.sh
 		])
 AC_OUTPUT
 

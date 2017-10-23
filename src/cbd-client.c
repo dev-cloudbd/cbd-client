@@ -606,6 +606,13 @@ void disconnect(char* device)
     if (ioctl(nbd, NBD_DISCONNECT) < 0)
         err("Ioctl failed: %m\n");
     printf("sock, ");
+
+    struct timespec req = { .tv_sec = 0, .tv_nsec = 100000000 };
+    while (check_conn(device, 0) == 0)
+    {
+        nanosleep(&req, NULL);
+    }
+
     if (ioctl(nbd, NBD_CLEAR_SOCK) < 0)
         err("Ioctl failed: %m\n");
     printf("done\n");
@@ -625,7 +632,6 @@ int main(int argc, char *argv[])
     uint16_t flags = 0;
     int c;
     int nonspecial = 0;
-    char* name = "cloudbd";
     uint16_t needed_flags = 0;
     uint32_t cflags = NBD_FLAG_C_FIXED_NEWSTYLE;
     uint32_t opts = 0;
@@ -674,15 +680,7 @@ int main(int argc, char *argv[])
             switch (nonspecial++)
             {
             case 0:
-                // [remote_name:]device_name
-                sep = strchr(optarg, ':');
-                if (!sep || sep == optarg || strnlen(sep + 1, 1) == 0) // no remote or empty remote found or empty device found
-                {
-                    usage("bad or missing cloudbd disk name");
-                    exit(EXIT_FAILURE);
-                }
                 device_name = optarg;
-
                 break;
             case 1:
                 // nbd_device
@@ -767,7 +765,7 @@ int main(int argc, char *argv[])
         if (sock < 0)
             exit(EXIT_FAILURE);
 
-        negotiate(&sock, &size64, &flags, name, needed_flags, cflags, opts);
+        negotiate(&sock, &size64, &flags, nbddev + 5, needed_flags, cflags, opts);
         if (i == 0)
         {
             setsizes(nbd, size64, blocksize, flags);
@@ -823,7 +821,7 @@ int main(int argc, char *argv[])
             }
             nanosleep(&req, NULL);
         }
-        if (open(nbddev, O_RDONLY) < 0)
+        if (open(nbddev, O_RDWR) < 0) // RDWR to trigger udev watch to fire change event
             perror("could not open device for updating partition table");
         exit(0);
     }

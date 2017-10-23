@@ -1,0 +1,608 @@
+#
+# This file is for inclusion with
+#    . $libdir/cbdsetup/cbddisks.functions
+# and should not be executed directly.
+
+PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+TABFILE=\${TABFILE-"$sysconfdir/cloudbd/cbdtab"}
+SOCKET_DIR=\${SOCKET_DIR-"$runstatedir/cloudbd"}
+CBDDISKS_ENABLE="yes"
+
+if readlink -f /sbin/init | grep -qE "systemd"; then
+    IS_SYSTEMD="yes"
+fi
+
+#set -x
+
+# Sanity check #1
+[ -x $sbindir/cbdkit ] || exit 0
+[ -x $sbindir/cbd-client ] || exit 0
+
+# Sanity check #2
+[ -f "\$TABFILE" ] || exit 0
+
+# void get_cbd_from_socket (string socket_path)
+get_cbd_from_socket () {
+    local sock_f="\${1##*/}"
+    CBD="\${sock_f%%.socket}"
+}
+
+# int parse_cbd (string cbd);
+parse_cbd () {
+    ERRMSG=""
+
+    if ! expr "x\$1" : "x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$" >/dev/null; then
+        ERRMSG="bad value for cbd"
+        return 1
+    fi
+
+    CBD="\$1"
+    return 0
+}
+
+# int parse_nbd (string nbd);
+parse_nbd () {
+    # Strip /dev/
+    local nbd="\$(echo -n \$1 | sed 's/^\/dev\///')"
+    ERRMSG=""
+
+    if ! expr "x\$nbd" : "xnbd[[:digit:]]\+\$" >/dev/null; then
+        ERRMSG="bad value for nbd"
+        return 1
+    fi
+
+    NBD="\$nbd"
+    return 0
+}
+
+# Parse and validate cbdtab options
+# input:   \$1: comma separated list of cbdtab options, 3rd field of cbdtab
+# output:  \$CBDKIT_PARAMS space separated cbdkit cmd line parameters
+#          \$IGNORE set to yes if noauto is in the options
+#          \$ERRMSG set to reason for failure if returning an error
+# return:  0 on success
+#          1 on errors
+# int parse_opts (string opts);
+parse_opts () {
+    local opts="\$1" opt param value
+    local IFS
+
+    CBDKIT_PARAMS=""
+    ERRMSG=""
+
+    # Parse the options field and validate cbdkit parameters
+    IFS=','
+    for opt in \$opts; do
+        param=\$(echo "\$opt" | sed 's/=.*//')
+        value=\$(echo "\$opt" | sed '/=/!d;s/^.*=//')
+
+        case "\$param" in
+        connections|threads|block_buffers|block_timeout|swath_buffers|swath_timeout)
+            if [ -z "\$value" ]; then
+                ERRMSG="no value for option \$param"
+                return 1
+            elif ! expr "x\$value" : 'x[[:digit:]]\+\$' >/dev/null; then
+                ERRMSG="bad value for option \$param"
+                return 1
+            elif [ "\$value" -le 0 ]; then
+                ERRMSG="option \$param must be greater than 0"
+                return 1
+            fi
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
+            ;;
+        log_level)
+            if [ -z "\$value" ]; then
+                ERRMSG="no value for option log_level"
+                return 1
+            fi
+            case "\$value" in
+            CRITICAL|ERROR|WARNING|NOTICE|INFO|DEBUG|TRACE1|TRACE2|TRACE3|TRACE4|TRACE5|TRACE6|TRACE7|TRACE8|TRACE9|TRACE10)
+                ;;
+            critical|error|warning|notice|info|debug|trace1|trace2|trace3|trace4|trace5|trace6|trace7|trace8|trace9|trace10)
+                ;;
+            *)
+                ERRMSG="bad value for option log_level"
+                return 1
+                ;;
+            esac
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS log_level=\$value"
+            ;;
+        noauto)
+            IGNORE="yes"
+            ;;
+        *)
+            ERRMSG="unrecognized option \$param"
+            return 1
+            ;;
+        esac
+    done
+    return 0
+}
+
+# int get_cbdtab_line_by_nbd (string nbd)
+get_cbdtab_line_by_nbd () {
+    local line="\$(grep -E -m1 "^[[:blank:]]*\${1}[[:blank:]]+.*\$" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
+
+    # Return 1 if NBD not found in TABFILE
+    [ -n "\$line" ] || return 1
+
+    read -r NBD CBD OPTS <<-EOF
+	\$line
+	EOF
+
+    return 0
+}
+
+# int get_cbdtab_line_by_cbd (string cbd)
+get_cbdtab_line_by_cbd () {
+    local line="\$(grep -E -m1 "^[[:blank:]]*nbd[[:digit:]]+[[:blank:]]+\${1}[[:blank:]#\$]" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
+
+    # Return 1 if CBD not found in TABFILE
+    [ -n "\$line" ] || return 1
+    read -r NBD CBD OPTS <<-EOF
+	\$line
+	EOF
+
+    return 0
+}
+
+# int get_cbdtab_line_by_socket (path socket)
+get_cbdtab_line_by_socket () {
+    CBD="\$(basename -s ".socket" "\$1")"
+    NBD="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -oE '^nbd[[:digit:]]+\$')"
+}
+
+# int handle_start (string nbd, string cbd [, string opts])
+# ret 0: success
+#     1: error
+#     2: ignored
+#     3: already running
+handle_start () {
+    # Make sure that all required fields are present
+    if [ "x\$1" = "x" ] || [ "x\$2" = "x" ]; then
+        ERRMSG="handle_start missing required arguments"
+        return 1
+    fi
+
+    local NBD="\$1" CBD="\$2" OPTS="\$3" IGNORE="no"
+    ERRMSG=""
+
+    # Validate inputs
+    if ! parse_cbd "\$CBD" || ! parse_nbd "\$NBD" || ! parse_opts "\$OPTS"; then
+        # ERRMSG set by parse funcs
+        return 1
+    fi
+
+    # Ignore noauto devices
+    if [ "x\$IGNORE" = "xyes" ] && [ "x\$FORCE_START" = "x" ]; then
+        ERRMSG="noauto"
+        return 2
+    fi
+
+    # Check if device is already running
+    if cbd-client -l "\$CBD" >/dev/null 2>&1; then
+        ERRMSG="already running"
+        return 3
+    fi
+
+    # Make sure NBD device exists
+    if [ ! -r "/dev/\$NBD" ]; then
+        ERRMSG="/dev/\$NBD does not exist"
+        return 1
+    fi
+
+    # Make sure NBD device is not busy
+    if cbd-client -c "/dev/\$NBD" >/dev/null 2>&1; then
+        ERRMSG="/dev/\$NBD is busy"
+        return 1
+    fi 
+
+    # Make sure that target device doesn't exist, error here because server is not up but device mapper is
+    if [ -b "/dev/mapper/\$CBD" ]; then
+        ERRMSG="/dev/mapper/\$CBD is busy"
+        return 1
+    fi
+
+    local SOCKET="\$SOCKET_DIR/\${CBD}.socket"
+    rm -f "\$SOCKET" || true
+    start-stop-daemon --start --pidfile "/sys/block/\$NBD/pid" --startas $sbindir/cbdkit -b -- -e "\$NBD" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"
+
+    return 0
+}
+
+#int do_attach (string cbd)
+do_systemd_attach () {
+    local NBD CBD OPTS
+
+    [ -d "\$SOCKET_DIR" ] || (mkdir -m 770 "\$SOCKET_DIR" && chown cloudbd:cloudbd "\$SOCKET_DIR")
+
+    if [ "x\$1" = "x" ]; then
+        >&2 echo "do_attach missing required argument"
+        return 1
+    fi
+
+    if ! get_cbdtab_line_by_cbd "\$1"; then
+        >&2 echo "CloudBD disk '\$1' not found"
+        return 1
+    fi
+
+    handle_cbdtab_line_start "\$NBD" "\$CBD" "\$OPTS"
+    if [ "\$?" -ne 0 ]; then
+        >&2 echo "\$CBD (\$output)"
+        return 1
+    fi
+
+    echo "\$CBD (started)"
+    return 0
+}
+
+# int do_start ([string cbd]*)
+do_start () {
+    local NBD CBD OPTS ret=0
+
+    modprobe -qb dm-mod || true
+    modprobe -qb nbd || true
+    dmsetup mknodes >/dev/null 2>&1 || true
+
+    [ -d "\$SOCKET_DIR" ] || (mkdir -m 770 "\$SOCKET_DIR" && chown cloudbd:cloudbd "\$SOCKET_DIR")
+
+    if [ "\$#" -eq 0 ]; then
+        log_action_begin_msg "Starting CloudBD disks"
+        # filter empty lines, comment lines, and end-of-line comments
+        while read NBD CBD OPTS; do
+            if [ "x\$CBD" = "x" ]; then continue; fi
+            handle_start "\$NBD" "\$CBD" "\$OPTS"
+            case \$? in
+                0) log_action_cont_msg "Starting \$CBD (started)"
+                   log_action_end_msg 0
+                   ;;
+                1) log_action_cont_msg "Starting \$CBD (\$ERRMSG)"
+                   log_action_end_msg 1
+                   ret=1
+                   ;;
+                2) log_action_cont_msg "Skipping \$CBD (\$ERRMSG)"
+                   log_action_end_msg 0
+                   ;;
+                3) log_action_cont_msg "Starting \$CBD (\$ERRMSG)"
+                   log_action_end_msg 0
+                   ;;
+                *) log_action_cont_msg "Starting \$CBD (unexpected return value \$?)"
+                   log_action_end_msg 1
+                   ret=1
+                   ;;
+            esac
+        done <<- EOF
+	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/ *#.*\$//g')
+	EOF
+        log_action_cont_msg "CloudBD disks started"
+        log_action_end_msg \$ret
+    else
+        for CBD in "\$@"; do
+            if ! get_cbdtab_line_by_cbd "\$CBD"; then
+                log_failure_msg "\$CBD (not found)"
+                ret=1
+                continue
+            fi
+
+            handle_start "\$NBD" "\$CBD" "\$OPTS"
+            case \$? in
+                0) log_success_msg "Starting \$CBD (started)"
+                   ;;
+                1) log_failure_msg "Starting \$CBD (\$ERRMSG)"
+                   ret=1
+                   ;;
+                2) log_success_msg "Skipping \$CBD (\$ERRMSG)"
+                   ;;
+                3) log_success_msg "Starting \$CBD (\$ERRMSG)"
+                   ;;
+                *) log_failure_msg "Starting \$CBD (unexpected return value \$?)"
+                   ret=1
+                   ;;
+            esac
+        done
+    fi
+
+    return \$ret
+}
+
+#int handle_stop (string cbd)
+handle_stop () {
+    local CBD NBD name type mnt opencount trycount=0 maxtries=5
+    ERRMSG=""
+    if ! parse_cbd "\$1"; then
+        # ERRMSG set by parse_cbd
+        return 1
+    fi
+
+    dmsetup mknodes "\$CBD" || true
+
+    if [ -b "/dev/mapper/\$CBD" ]; then
+        if [ -z "\$FORCE_STOP" ]; then
+            opencount="\$(dmsetup info -c --noheadings -o open "\$CBD" 2>/dev/null)"
+            if [ -z "\$opencount" ]; then
+                ERRMSG="unable to query opencount"
+                return 1
+            elif [ "\$opencount" -ne 0 ]; then
+                ERRMSG="device busy"
+                return 1
+            fi
+        fi
+
+        # lets try to be the good guy and stop all services using us cleanly before yanking the plug on the device
+        lsblk -l --noheadings -o NAME,TYPE,MOUNTPOINT "/dev/mapper/\$CBD" | tac | while read name type mnt; do
+            if [ ! -z "\$mnt" ]; then
+                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount"; then
+                    umount "\$mnt" 2>/dev/null || umount -f "\$mnt" 2>/dev/null || true
+                    sleep 1 # umount is apparently async, slight delay to hopefully avoid fs kernel writes after close
+                fi
+            fi
+
+            if [ "\$type" = "lvm" ]; then
+                lvname="\$(dmsetup splitname --noheadings "\$name" -o lv_name 2>/dev/null)"
+                vgname="\$(dmsetup splitname --noheadings "\$name" -o vg_name 2>/dev/null)"
+                if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
+                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 || true
+                    udevadm settle -t 3
+                fi
+            fi
+
+            if [ "\$type" = "crypt" ]; then
+                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${name}.service" >/dev/null 2>&1; then
+                    cryptdisks_stop "\$name" >/dev/null 2>&1 || true
+                fi
+                udevadm settle -t 3
+            fi
+
+            if [ "\$type" = "part" ]; then
+                dmsetup remove "\$name" >/dev/null 2>&1 || true
+                udevadm settle -t 3
+            fi
+        done
+
+        if ! dmsetup remove --retry "\$CBD" >/dev/null 2>&1; then
+            dmsetup remove --force "\$CBD" >/dev/null 2>&1 || true
+        fi
+        udevadm settle -t 3
+    fi
+
+    NBD="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -Eo '^nbd[[:digit:]]+\$')"
+    # Check if device is running and if not if it is configured
+    if [ "x\$NBD" = "x" ]; then
+        if ! get_cbdtab_line_by_cbd "\$CBD"; then
+            ERRMSG="not found"
+            return 1
+        else
+            ERRMSG="not running"
+            return 2
+        fi
+    fi
+
+    cbd-client -d /dev/\$NBD >/dev/null 2>&1 || true
+    while [ \$trycount -lt \$maxtries ]; do
+        pgrep -f "cbdkit -e \$NBD" >/dev/null 2>&1 || break # sleep until server is finished syncing or max tries
+        sleep 1
+        trycount=\$(( trycount + 1 ))
+    done
+    if [ \$trycount -eq \$maxtries ]; then
+        ERRMSG="failed to stop server"
+        return 1
+    fi
+
+    rm -f "\$SOCKET_DIR/\${CBD}.socket" || true
+    return 0
+}
+
+#int do_stop ([string cbd]*)
+do_stop () {
+    local CBD NBD SOCKET result ret=0
+
+    [ -d "\$SOCKET_DIR" ] || return 0
+
+    if [ "\$#" -eq 0 ]; then
+        log_action_begin_msg "Stopping CloudBD disks"
+        for SOCKET in \$(ls \$SOCKET_DIR/*.socket 2>/dev/null); do
+            get_cbd_from_socket "\$SOCKET"
+            handle_stop "\$CBD"
+            case \$? in
+                0) log_action_cont_msg "Stopping \$CBD (stopped)"
+                   log_action_end_msg 0
+                   ;;
+                1) log_action_cont_msg "Stopping \$CBD (\$ERRMSG)"
+                   log_action_end_msg 1
+                   ret=1
+                   ;;
+                2) log_action_cont_msg "Stopping \$CBD (\$ERRMSG)"
+                   log_action_end_msg 0
+                   ;;
+                *) log_action_cont_msg "Stopping \$CBD (unexpected return value \$?)"
+                   log_action_end_msg 1
+                   ret=1
+                   ;;
+            esac
+        done
+        log_action_cont_msg "CloudBD disks stopped"
+        log_action_end_msg \$ret
+    else
+        for CBD in "\$@"; do
+            handle_stop "\$CBD"
+            case \$? in
+                0) log_success_msg "Stopping \$CBD (stopped)"
+                   ;;
+                1) log_failure_msg "Stopping \$CBD (\$ERRMSG)"
+                   ret=1
+                   ;;
+                2) log_success_msg "Stopping \$CBD (\$ERRMSG)"
+                   ;;
+                *) log_failure_msg "Stopping \$CBD (unexpected return value \$?)"
+                   ret=1
+                   ;;
+            esac
+        done
+    fi
+
+    # hack for systemd bug not deleting all virtual disk paths
+    [ -z "\$IS_SYSTEMD" ] || systemctl daemon-reload || true
+
+    return \$ret
+}
+
+# logging from /lib/lsb/init-functions and /lib/lsb/init-functions.d/50-ubuntu-logging
+# for compatibility with rhel systems
+
+LOG_DAEMON_MSG=""
+
+log_use_plymouth () {
+    if [ "\${loop:-n}" = y ]; then
+        return 1
+    fi
+    plymouth --ping >/dev/null 2>&1
+}
+
+log_use_fancy_output () {
+    TPUT=/usr/bin/tput
+    EXPR=/usr/bin/expr
+    if  [ -t 1 ] &&
+        [ "x\${TERM:-}" != "x" ] &&
+        [ "x\${TERM:-}" != "xdumb" ] &&
+        [ -x \$TPUT ] && [ -x \$EXPR ] &&
+        \$TPUT hpa 60 >/dev/null 2>&1 &&
+        \$TPUT setaf 1 >/dev/null 2>&1
+    then
+        [ -z \$FANCYTTY ] && FANCYTTY=1 || true
+    else
+        FANCYTTY=0
+    fi
+    case "\$FANCYTTY" in
+        1|Y|yes|true)   true;;
+        *)              false;;
+    esac
+}
+
+log_begin_msg () {
+    log_daemon_msg "\$1"
+}
+
+log_end_msg () {
+    if [ -z "\$1" ]; then
+        return 1
+    fi
+
+    if [ "\$COL" ] && [ -x "\$TPUT" ]; then
+        # If plymouth is running, print previously stored output
+        # to avoid buffering problems (LP: #752393)
+        if log_use_plymouth; then
+            if [ -n "\$LOG_DAEMON_MSG" ]; then
+                log_daemon_msg \$LOG_DAEMON_MSG
+                LOG_DAEMON_MSG=""
+            fi
+        fi
+
+        printf "\r" || true
+        \$TPUT hpa \$COL
+        if [ "\$1" -eq 0 ]; then
+            echo "[ OK ]" || true
+        else
+            printf '[' || true
+            \$TPUT setaf 1 || true # red
+            printf fail || true
+            \$TPUT op || true # normal
+            echo ']' || true
+        fi
+    else
+        if [ "\$1" -eq 0 ]; then
+            echo "   ...done." || true
+        else
+            echo "   ...fail!" || true
+        fi
+    fi
+    return \$1
+}
+
+log_action_msg () {
+    echo " * \$@" || true
+}
+
+log_action_begin_msg () {
+    log_daemon_msg "\$@..." || true
+}
+
+log_action_cont_msg () {
+    log_daemon_msg "\$@..." || true
+}
+
+log_action_end_msg () {
+    # In the future this may do something with \$2 as well.
+    log_end_msg "\$1" || true
+}
+
+log_daemon_msg () {
+    if [ -z "\$1" ]; then
+        return 1
+    fi
+
+    if log_use_fancy_output && \$TPUT xenl >/dev/null 2>&1; then
+        COLS=\`\$TPUT cols\`
+        if [ "\$COLS" ] && [ "\$COLS" -gt 6 ]; then
+            COL=\`\$EXPR \$COLS - 7\`
+        else
+            COLS=80
+            COL=73
+        fi
+
+        if log_use_plymouth; then
+            # If plymouth is running, don't output anything at this time
+            # to avoid buffering problems (LP: #752393)
+            if [ -z "\$LOG_DAEMON_MSG" ]; then
+                LOG_DAEMON_MSG=\$*
+                return
+            fi
+        fi
+
+        # We leave the cursor \`hanging' about-to-wrap (see terminfo(5)
+        # xenl, which is approximately right). That way if the script
+        # prints anything then we will be on the next line and not
+        # overwrite part of the message.
+
+        # Previous versions of this code attempted to colour-code the
+        # asterisk but this can't be done reliably because in practice
+        # init scripts sometimes print messages even when they succeed
+        # and we won't be able to reliably know where the colourful
+        # asterisk ought to go.
+
+        printf " * \$*       " || true
+        # Enough trailing spaces for \` [fail]' to fit in; if the message
+        # is too long it wraps here rather than later, which is what we
+        # want.
+        \$TPUT hpa \`\$EXPR \$COLS - 1\` || true
+        printf ' ' || true
+    else
+        echo " * \$@" || true
+        COL=
+    fi
+}
+
+log_success_msg () {
+    echo " * \$@" || true
+}
+
+log_failure_msg () {
+    if log_use_fancy_output; then
+        RED=\`\$TPUT setaf 1\`
+        NORMAL=\`\$TPUT op\`
+        echo " \$RED*\$NORMAL \$@" || true
+    else
+        echo " * \$@" || true
+    fi
+}
+
+log_warning_msg () {
+    if log_use_fancy_output; then
+        YELLOW=\`\$TPUT setaf 3\`
+        NORMAL=\`\$TPUT op\`
+        echo " \$YELLOW*\$NORMAL \$@" || true
+    else
+        echo " * \$@" || true
+    fi
+}
+
+

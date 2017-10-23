@@ -1,0 +1,11 @@
+cbd_dmsetup
+cbd_id
+cbddisks
+cbddisks_start
+cbddisks_stop
+cbdsetup.functions
+cbdsetup@.service
+cbdsetup-generator
+*.sh
+*.sh.in
+

@@ -1,0 +1,94 @@
+#!/bin/sh
+set -f
+
+TABFILE=\${TABFILE-"$sysconfdir/cloudbd/cbdtab"}
+ENABLE="enabled"
+DISABLE="disabled"
+CBDSETUP_TARGET="$systemdunit/cbdsetup.target"
+CBDSETUP_SERVICE="$systemdunit/cbdsetup@.service"
+CBDSETUP_TARGET_NAME="cbdsetup.target"
+RUN_ENABLED_FILE="$runstatedir/cloudbd/\$ENABLE"
+LOG_D="$runstatedir/cloudbd"
+LOG=""
+
+debug () {
+    if [ -z "\$LOG" ]; then
+        local log="\$LOG_D/\${0##*/}.log"
+        { [ -d "\$LOG_D" ] || mkdir -p "\$LOG_D"; } &&
+            { : > "\$log"; } >/dev/null 2>&1 && LOG="\$log" ||
+            LOG="/dev/kmsg"
+    fi
+    echo "\$@" >> "\$LOG"
+}
+
+main () {
+    local normal_d="\$1" early_d="\$2" late_d="\$3"
+    local target_name="sysinit.target" gen_d="\$normal_d"
+    local link_path="\$gen_d/\${target_name}.wants/\${CBDSETUP_TARGET_NAME}"
+    local link_disk_path="\$gen_d/\${CBDSETUP_TARGET_NAME}.requires"
+    local result="\$DISABLE"
+    local NBD CBD OPTS
+    # Check for any valid targets
+    if grep -qE '^[[:blank:]]*(#|$)' "\$TABFILE"; then
+        result="\$ENABLE"
+    fi
+
+    if [ "\$result" = "\$ENABLE" ]; then
+        if [ -e "\$link_path" ]; then
+            debug "\$CBDSETUP_TARGET_NAME (enabled)"
+        else
+            debug "\$CBDSETUP_TARGET_NAME (enabling)"
+            if [ ! -d "\${link_path%/*}" ] && ! mkdir -p "\${link_path%/*}"; then
+                debug "ERROR: mkdir '\$link_path'"
+                return 1
+            fi
+
+            if [ ! -d "\${link_disk_path}" ] && ! mkdir -p "\${link_disk_path}"; then
+                debug "ERROR: mkdir '\$link_disk_path'"
+                    return 1
+            fi
+
+            if ! ln -snf "\$CBDSETUP_TARGET" "\$link_path"; then
+                debug "ERROR: 'ln -snf \$link_path'"
+                return 1
+            fi
+
+            grep -vE '^[[:blank:]]*(#|$)' "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g' | while read -r NBD CBD OPTS; do
+                if [ "x\$NBD" = "x" ] || [ "x\$CBD" = "x" ] ||
+                   ! expr "x\$NBD" : 'xnbd[[:digit:]]\+' >/dev/null ||
+                   ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+' >/dev/null; then
+                    debug "ERROR: found invalid line in cbdtab"
+                    continue
+                fi
+
+                if echo "x\$OPTS" | grep -Eq '(x|.*,)noauto([[:blank:]]|,|#|\$)'; then
+                    debug "\$CBD (skipping - noauto)"
+                    continue
+                fi
+                cbd_escaped="\$(systemd-escape "\$CBD")"
+                if ! ln -snf "\$CBDSETUP_SERVICE" "\$link_disk_path/cbdsetup@\${cbd_escaped}.service"; then
+                    debug "ERROR: 'ln -snf \$CBDSETUP_SERVICE \$link_disk_path/cbdsetup@\${cbd_escaped}.service'"
+                    continue
+                else
+                    debug "\$CBD (enabled)"
+                fi
+            done 
+        fi
+        : > "\$RUN_ENABLED_FILE"
+    elif [ "\$result" = "\$DISABLE" ]; then
+        debug "Disabling \$CBDSETUP_TARGET_NAME"
+        if [ -f "\$link_path" ] && ! rm -f "\$link_path"; then
+            debug "failed 'rm -f \$link_path'"
+            return 1
+        fi
+        if [ -e "\$RUN_ENABLED_FILE" ]; then
+            rm -f "\$RUN_ENABLED_FILE"
+        fi
+    fi
+
+    return 0
+}
+
+main "\$@"
+
+# vi: ts=4 expandtab

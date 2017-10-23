@@ -1,0 +1,6 @@
+[Unit]
+Description=CloudBD Volumes
+Documentation=man:cbdsetup
+DefaultDependencies=no
+Before=sysinit.target
+

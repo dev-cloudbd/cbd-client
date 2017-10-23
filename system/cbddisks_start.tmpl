@@ -1,0 +1,61 @@
+#!/bin/sh
+
+. $libdir/cbdsetup/cbdsetup.functions
+
+usage () {
+    cat <<-EOF
+	Usage: cbddisks_start CBD [CBD]...       start one or more cbdtab disks (implies -f)
+	       cbddisks_start -a [-f]            start all cbdtab disks
+	
+	       CBD := remote:disk                a disk configured in the cbdtab file
+	
+	Start CloudBD disks configured in \$TABFILE
+	-a, --all                     start all configured disks
+	-f, --force                   do not skip noauto disks
+	-h, --help                    display this help and exit
+	EOF
+}
+
+main () {
+    local cbds="" param all
+
+    for param in "\$@"; do
+        case "\$param" in
+        -h|-help|--help)
+            usage
+            exit 0
+            ;;
+        -a|-all|--all)
+            all="yes"
+            ;;
+        -f|-force|--force)
+            FORCE_START="yes"
+            ;;
+        -*)
+            >&2 echo "\$0: error - invalid option -- '\$param'"
+            >&2 echo "Try '\$0 --help' for more info"
+            exit 1
+            ;;
+        *)
+            cbds="\$cbds \$param"
+            FORCE_START="yes"
+            ;;
+        esac
+    done
+
+    if [ "x\$all" = "xyes" ] && [ ! "x\$cbds" = "x" ]; then
+        >&2 echo "\$0: error - all disks option specified, no CBD disk arguments expected"
+        >&2 echo "Try '\$0 --help' for more info"
+        exit 1
+    elif [ ! "x\$all" = "xyes" ] && [ "x\$cbds" = "x" ]; then
+        >&2 echo "\$0: error - no disks specified"
+        >&2 echo "Try '\$0 --help' for more info"
+        exit 1
+    fi
+
+    do_start \$cbds
+    exit \$?
+}
+
+main "\$@"
+
