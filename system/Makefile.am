@@ -1,6 +1,6 @@
-systemd_unit_dir = $(systemdunitdir)
+systemd_unit_dir = $(prefix)/$(systemdunitdir)
 systemd_unit__DATA = cbdsetup@.service cbdsetup.target cbdsetup-pre.target
-systemd_generator_dir = $(systemdgendir)
+systemd_generator_dir = $(prefix)/$(systemdgendir)
 systemd_generator__SCRIPTS = cbdsetup-generator
 
 conf_cloudbd_dir = $(sysconfdir)/cloudbd
@@ -8,12 +8,12 @@ conf_cloudbd__DATA = cbdtab
 conf_init_dir = $(sysconfdir)/init.d
 conf_init__DATA = cbddisks
 
-tmpfiles_dir = /usr/lib/tmpfiles.d
+tmpfiles_dir = $(prefix)/usr/lib/tmpfiles.d
 tmpfiles__DATA = cbd.conf
 
-udev_dir = $(udevdir)
+udev_dir = $(prefix)/$(udevdir)
 udev__SCRIPTS = cbd_id cbd_dmsetup
-udev_rules_dir = $(udevdir)/rules.d
+udev_rules_dir = $(prefix)/$(udevdir)/rules.d
 udev_rules__DATA = 99-cbd.rules
 
 sbin_SCRIPTS = cbddisks_start cbddisks_stop
@@ -21,14 +21,19 @@ cbdsetup_dir = $(libdir)/cbdsetup
 cbdsetup__DATA = cbdsetup.functions
 
 EXTRA_DIST = \
+	99-cbd.rules \
+	cbd.conf \
 	cbd_id.tmpl \
 	cbd_dmsetup.tmpl \
 	cbddisks.tmpl \
 	cbddisks_start.tmpl \
 	cbddisks_stop.tmpl \
 	cbdsetup.functions.tmpl \
+	cbdsetup.target \
+	cbdsetup-pre.target \
 	cbdsetup@.service.tmpl \
 	cbdsetup-generator.tmpl \
+	cbdtab \
 	sh.tmpl 
 
 cbdsetup@.service: cbdsetup@.service.sh
