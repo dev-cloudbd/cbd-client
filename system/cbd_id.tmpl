@@ -6,7 +6,7 @@
 . $libdir/cbdsetup/cbdsetup.functions
 
 # sanity checks
-[ -x $sbindir/cloudbd ] || exit 0
+[ -x $bindir/cloudbd ] || exit 0
 
 # int cloudbd_id (string nbd)
 do_id () {
@@ -23,7 +23,7 @@ do_id () {
     fi
 
     # Get the device parameters
-    $sbindir/cloudbd -e info "\$CBD" 2>/dev/null
+    $bindir/cloudbd -e info "\$CBD" 2>/dev/null
     [ \$? -eq 0 ] && echo "CBD_SCANNED=1"
 
     return 0
