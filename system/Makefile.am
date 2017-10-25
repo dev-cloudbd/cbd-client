@@ -8,9 +8,6 @@ conf_cloudbd__DATA = cbdtab
 conf_init_dir = $(sysconfdir)/init.d
 conf_init__DATA = cbddisks
 
-tmpfiles_dir = $(prefix)/usr/lib/tmpfiles.d
-tmpfiles__DATA = cbd.conf
-
 udev_dir = $(prefix)/$(udevdir)
 udev__SCRIPTS = cbd_id cbd_dmsetup
 udev_rules_dir = $(prefix)/$(udevdir)/rules.d
@@ -22,7 +19,6 @@ cbdsetup__DATA = cbdsetup.functions
 
 EXTRA_DIST = \
 	99-cbd.rules \
-	cbd.conf \
 	cbd_id.tmpl \
 	cbd_dmsetup.tmpl \
 	cbddisks.tmpl \
