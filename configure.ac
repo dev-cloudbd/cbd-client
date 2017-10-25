@@ -53,8 +53,15 @@ AC_TYPE_OFF_T
 AC_TYPE_PID_T
 
 
+m4_ifdef([PKG_CHECK_VAR], [HAVE_PKG_CHECK_VAR=yes])
+
 AC_MSG_CHECKING([where to put udev files])
-PKG_CHECK_VAR([UDEVDIR],[udev],[udevdir],[AC_SUBST([udevdir], [$UDEVDIR])])
+if test "x$HAVE_PKG_CHECK_VAR" = "xyes"; then
+    PKG_CHECK_VAR([UDEVDIR], [udev], [udevdir], [AC_SUBST([udevdir], [$UDEVDIR])])
+else
+    AC_SUBST([udevdir], ["$( pkg-config --variable=udevdir udev )"])
+fi
+
 if test -z $udevdir; then
 	AC_MSG_ERROR([not found])
 else
@@ -67,7 +74,6 @@ dnl else
 dnl        AC_SUBST([UDEVDIR], ["$prefix/lib/udev/"])
 dnl fi
 
-AC_MSG_CHECKING([where to put systemd unit files])
 AC_ARG_ENABLE([systemd],
 	AS_HELP_STRING([--enable-systemd],[Install systemd files using pkg-config to detect the correct location and install there.]),
 	[
@@ -79,12 +85,18 @@ AC_ARG_ENABLE([systemd],
 	],
 	[SYSTEMD_ENABLED=no])
 
+AC_MSG_CHECKING([where to put systemd unit files])
 if test "x$SYSTEMD_ENABLED" = "xyes"; then
-	PKG_CHECK_VAR([SYSTEMDUNIT],[systemd],[systemdsystemunitdir],[AC_SUBST([systemdunitdir], [$SYSTEMDUNIT])])
-	PKG_CHECK_VAR([SYSTEMDGEN],[systemd],[systemdsystemgeneratordir],[AC_SUBST([systemdgendir], [$SYSTEMDGEN])])
+	if test "x$HAVE_PKG_CHECK_VAR" = "xyes"; then
+		PKG_CHECK_VAR([SYSTEMDUNIT], [systemd], [systemdsystemunitdir], [AC_SUBST([systemdunitdir], [$SYSTEMDUNIT])])
+		PKG_CHECK_VAR([SYSTEMDGEN], [systemd], [systemdsystemgeneratordir], [AC_SUBST([systemdgendir], [$SYSTEMDGEN])])
+	else
+		AC_SUBST([systemdunitdir], ["$( pkg-config --variable=systemdsystemunitdir systemd )"])
+		AC_SUBST([systemdgendir], ["$( pkg-config --variable=systemdsystemgeneratordir systemd )"])
+	fi
 fi
 
-AM_CONDITIONAL([SYSTEMD], [test ! -z "$SYSTEMDUNIT" && test ! -z "$SYSTEMDGEN"])
+AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"])
 
 if test "x$SYSTEMD_ENABLED" = "xyes" && test -n $systemdunitdir && test -n $systemdgendir; then
 	AC_MSG_RESULT([enabled])
