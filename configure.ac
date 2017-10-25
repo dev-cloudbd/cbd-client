@@ -99,7 +99,7 @@ else
 	esac
 fi
 
-AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$runstatedir\"'"
+AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$localstatedir/run\"'"
 AC_SUBST(AM_CPPFLAGS)
 AC_CONFIG_SRCDIR([src/nbd.h])
 AC_CONFIG_HEADERS([src/config.h])
