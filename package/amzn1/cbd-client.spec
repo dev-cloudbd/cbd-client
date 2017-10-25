@@ -25,10 +25,14 @@ remote block devices over a TCP/IP network.
 %license COPYING
 %{_mandir}/man*/cbd*
 %{_sbindir}/cbd-client
+%{_sbindir}/cbddisks_start
+%{_sbindir}/cbddisks_stop
 %config(noreplace) %{_sysconfdir}/cloudbd/cbdtab
-%{_sysconfdir}/init.d/cloudbd
-/lib/udev/cloudbd_id
-/lib/udev/rules.d/99-cbd.rules
+%{_sysconfdir}/init.d/cbddisks
+%{_libdir}/udev/cbd_id
+%{_libdir}/udev/cbd_dmsetup
+%{_libdir}/udev/rules.d/99-cbd.rules
+%{_libdir}/cbdsetup/cbdsetup.functions
 
 %changelog
 * Tue Sep 12 2017 Shaun McDowell <smcdowell@cloudbd.io> - 3.15.2-1
