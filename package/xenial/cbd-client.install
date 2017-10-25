@@ -13,4 +13,3 @@ lib/systemd/system/cbdsetup@.service
 lib/systemd/system/cbdsetup.target
 lib/systemd/system/cbdsetup-pre.target
 lib/systemd/system-generators/cbdsetup-generator
-usr/lib/tmpfiles.d/cbd.conf
