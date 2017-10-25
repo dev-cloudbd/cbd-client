@@ -2,9 +2,7 @@
 
 case "$1" in
     configure)
-        if adduser --quiet --system --group --no-create-home cloudbd; then
-	    >/usr/lib/tmpfiles.d/cbd.conf echo 'd /var/run/cloudbd 0770 cloudbd cloudbd - -'
-	fi
+        adduser --quiet --system --group --no-create-home cloudbd
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
         # We need not do anything.

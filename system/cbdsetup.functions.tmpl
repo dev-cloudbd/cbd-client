@@ -214,7 +214,7 @@ handle_start () {
 do_systemd_attach () {
     local NBD CBD OPTS
 
-    [ -d "\$SOCKET_DIR" ] || (mkdir -m 770 "\$SOCKET_DIR" && chown cloudbd:cloudbd "\$SOCKET_DIR")
+    [ -d "\$SOCKET_DIR" ] || mkdir -m 770 "\$SOCKET_DIR"
 
     if [ "x\$1" = "x" ]; then
         >&2 echo "do_attach missing required argument"
@@ -244,7 +244,7 @@ do_start () {
     modprobe -qb nbd || true
     dmsetup mknodes >/dev/null 2>&1 || true
 
-    [ -d "\$SOCKET_DIR" ] || (mkdir -m 770 "\$SOCKET_DIR" && chown cloudbd:cloudbd "\$SOCKET_DIR")
+    [ -d "\$SOCKET_DIR" ] || mkdir -m 770 "\$SOCKET_DIR"
 
     if [ "\$#" -eq 0 ]; then
         log_action_begin_msg "Starting CloudBD disks"
