@@ -52,35 +52,22 @@ AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 
-m4_ifdef([PKG_CHECK_VAR], [],
-[AC_DEFUN([PKG_CHECK_VAR],
-    [AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
-     AC_ARG_VAR([$1], [value of $3 for $2, overriding pkg-config])dnl
-     _PKG_CONFIG([$1], [variable="][$3]["], [$2])
-     AS_VAR_COPY([$1], [pkg_cv_][$1])
-     AS_VAR_IF([$1], [""], [$5], [$4])dnl
+m4_ifdef([PKG_CHECK_VAR], [], [AC_DEFUN([PKG_CHECK_VAR], [
+	AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
+	AC_ARG_VAR([$1], [value of $3 for $2, overriding pkg-config])dnl
+	_PKG_CONFIG([$1], [variable="][$3]["], [$2])
+	AS_VAR_COPY([$1], [pkg_cv_][$1])
+	AS_VAR_IF([$1], [""], [$5], [$4])dnl
     ])# PKG_CHECK_VAR
 ])
-HAVE_PACKAGE_CHECK_VAR="yes"
 
 AC_MSG_CHECKING([where to put udev files])
-if test "x$HAVE_PKG_CHECK_VAR" = "xyes"; then
-    PKG_CHECK_VAR([UDEVDIR], [udev], [udevdir], [AC_SUBST([udevdir], [$UDEVDIR])])
+PKG_CHECK_VAR([UDEVDIR], [udev], [udevdir], [AC_MSG_RESULT([found])], [AC_MSG_ERROR([not found])])
+if test "$prefix" = "NONE" -o "$prefix" = "/usr" -o "$prefix" = "/usr/local"; then
+    AC_SUBST([udevdir], [$UDEVDIR])
 else
-    AC_SUBST([udevdir], ["$( pkg-config --variable=udevdir udev )"])
+    AC_SUBST([udevdir], ["${prefix}$UDEVDIR"])
 fi
-
-if test -z $udevdir; then
-	AC_MSG_ERROR([not found])
-else
-	AC_MSG_RESULT([found])
-fi
-
-dnl if test "$prefix" = "/usr" -o "$prefix" = "/usr/local" -o "$prefix" = "NONE"; then
-dnl        AC_SUBST([UDEVDIR], ["$( pkg-config --variable=udevdir udev )/"])
-dnl else
-dnl        AC_SUBST([UDEVDIR], ["$prefix/lib/udev/"])
-dnl fi
 
 AC_ARG_ENABLE([systemd],
 	AS_HELP_STRING([--enable-systemd],[Install systemd files using pkg-config to detect the correct location and install there.]),
@@ -95,29 +82,21 @@ AC_ARG_ENABLE([systemd],
 
 AC_MSG_CHECKING([where to put systemd unit files])
 if test "x$SYSTEMD_ENABLED" = "xyes"; then
-	if test "x$HAVE_PKG_CHECK_VAR" = "xyes"; then
-		PKG_CHECK_VAR([SYSTEMDUNIT], [systemd], [systemdsystemunitdir], [AC_SUBST([systemdunitdir], [$SYSTEMDUNIT])])
-		PKG_CHECK_VAR([SYSTEMDGEN], [systemd], [systemdsystemgeneratordir], [AC_SUBST([systemdgendir], [$SYSTEMDGEN])])
-	else
-		AC_SUBST([systemdunitdir], ["$( pkg-config --variable=systemdsystemunitdir systemd )"])
-		AC_SUBST([systemdgendir], ["$( pkg-config --variable=systemdsystemgeneratordir systemd )"])
-	fi
+    PKG_CHECK_VAR([SYSTEMDUNIT], [systemd], [systemdsystemunitdir], [], [AC_MSG_ERROR([systemd not found])])
+    PKG_CHECK_VAR([SYSTEMDGEN], [systemd], [systemdsystemgeneratordir], [], [AC_MSG_ERROR([systemd not found])])
+    AC_MSG_RESULT([found])
+    if test "$prefix" = "NONE" -o "$prefix" = "/usr" -o "$prefix" = "/usr/local"; then
+        AC_SUBST([systemdunitdir], [$SYSTEMDUNIT])
+        AC_SUBST([systemdgendir], [$SYSTEMDGEN])
+    else
+        AC_SUBST([systemdunitdir], ["${prefix}$SYSTEMDUNIT"])
+        AC_SUBST([systemdgendir], ["${prefix}$SYSTEMDGEN"])
+    fi
+else
+    AC_MSG_RESULT([disabled])
 fi
 
 AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"])
-
-if test "x$SYSTEMD_ENABLED" = "xyes" && test -n $systemdunitdir && test -n $systemdgendir; then
-	AC_MSG_RESULT([enabled])
-else
-	case $SYSTEMD_ENABLED in
-		yes)
-			AC_MSG_ERROR([systemd not found])
-		;;
-		*)
-			AC_MSG_RESULT([disabled])
-		;;
-	esac
-fi
 
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$localstatedir/run\"'"
 AC_SUBST(AM_CPPFLAGS)

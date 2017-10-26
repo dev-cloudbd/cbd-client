@@ -1,6 +1,6 @@
-systemd_unit_dir = $(prefix)/$(systemdunitdir)
+systemd_unit_dir = $(systemdunitdir)
 systemd_unit__DATA = cbdsetup@.service cbdsetup.target cbdsetup-pre.target
-systemd_generator_dir = $(prefix)/$(systemdgendir)
+systemd_generator_dir = $(systemdgendir)
 systemd_generator__SCRIPTS = cbdsetup-generator
 
 conf_cloudbd_dir = $(sysconfdir)/cloudbd
@@ -8,13 +8,13 @@ conf_cloudbd__DATA = cbdtab
 conf_init_dir = $(sysconfdir)/init.d
 conf_init__DATA = cbddisks
 
-udev_dir = $(prefix)/$(udevdir)
+udev_dir = $(udevdir)
 udev__SCRIPTS = cbd_id cbd_dmsetup
-udev_rules_dir = $(prefix)/$(udevdir)/rules.d
+udev_rules_dir = $(udevdir)/rules.d
 udev_rules__DATA = 99-cbd.rules
 
 sbin_SCRIPTS = cbddisks_start cbddisks_stop
-cbdsetup_dir = $(prefix)/lib/cbdsetup
+cbdsetup_dir = $(libdir)/cbdsetup
 cbdsetup__DATA = cbdsetup.functions
 
 EXTRA_DIST = \
