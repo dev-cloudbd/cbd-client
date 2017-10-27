@@ -16,7 +16,7 @@ override_dh_auto_configure: debian/po/templates.pot
 	test -f src/nbd.h
 	if [ -d .git ]; then test $$(git status --porcelain | wc -l) -le 0; fi
 	dh_auto_configure -- --enable-syslog --enable-systemd \
-			--prefix="" --mandir=/usr/share/man
+			--prefix="" --libdir=/lib --mandir=/usr/share/man
 
 override_dh_install:
 	dh_install -s
