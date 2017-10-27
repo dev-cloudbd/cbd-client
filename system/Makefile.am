@@ -6,7 +6,7 @@ systemd_generator__SCRIPTS = cbdsetup-generator
 conf_cloudbd_dir = $(sysconfdir)/cloudbd
 conf_cloudbd__DATA = cbdtab
 conf_init_dir = $(sysconfdir)/init.d
-conf_init__DATA = cbddisks
+conf_init__SCRIPTS = cbddisks
 
 udev_dir = $(udevdir)
 udev__SCRIPTS = cbd_id cbd_dmsetup
