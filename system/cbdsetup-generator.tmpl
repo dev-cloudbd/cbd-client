@@ -65,9 +65,8 @@ main () {
                     debug "\$CBD (skipping - noauto)"
                     continue
                 fi
-                cbd_escaped="\$(systemd-escape "\$CBD")"
-                if ! ln -snf "\$CBDSETUP_SERVICE" "\$link_disk_path/cbdsetup@\${cbd_escaped}.service"; then
-                    debug "ERROR: 'ln -snf \$CBDSETUP_SERVICE \$link_disk_path/cbdsetup@\${cbd_escaped}.service'"
+                if ! ln -snf "\$CBDSETUP_SERVICE" "\$link_disk_path/cbdsetup@\${CBD}.service"; then
+                    debug "ERROR: 'ln -snf \$CBDSETUP_SERVICE \$link_disk_path/cbdsetup@\${CBD}.service'"
                     continue
                 else
                     debug "\$CBD (enabled)"

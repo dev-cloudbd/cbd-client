@@ -205,7 +205,10 @@ handle_start () {
 
     local SOCKET="\$SOCKET_DIR/\${CBD}.socket"
     rm -f "\$SOCKET" || true
-    start-stop-daemon --start --pidfile "/sys/block/\$NBD/pid" --startas $sbindir/cbdkit -b -- -e "\$NBD" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"
+    if ! $sbindir/cbdkit -e "\$NBD" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"; then
+        ERRMSG="cbdkit returned with error"
+        return 1
+    fi
 
     return 0
 }

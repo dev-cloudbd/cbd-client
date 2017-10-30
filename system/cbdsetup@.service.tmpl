@@ -1,5 +1,5 @@
 [Unit]
-Description=CloudBD Disk %I
+Description=CloudBD Disk %i
 Documentation=man:cbdtab(5) man:cbdsetup-generator(8) man:cbdsetup@.service(8)
 SourcePath=@sysconfdir@/cloudbd/cbdtab
 DefaultDependencies=no
@@ -11,6 +11,6 @@ Conflicts=umount.target
 
 [Service]
 Type=forking
-ExecStart=@sbindir@/cbddisks_start %I
-ExecStop=@sbindir@/cbddisks_stop -f %I
+ExecStart=@sbindir@/cbddisks_start %i
+ExecStop=@sbindir@/cbddisks_stop -f %i
 
