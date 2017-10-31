@@ -10,7 +10,7 @@ Requires(pre): /usr/sbin/useradd, /usr/bin/getent, /usr/sbin/groupadd
 
 %pre
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
-/usr/bin/getent passwd cloudbd > /dev/null || /usr/sbin/useradd -r -g cloudbd
+/usr/bin/getent passwd cloudbd > /dev/null || /usr/sbin/useradd -r -g cloudbd cloudbd
 
 %description 
 Tools for the Linux Kernel's network block device, allowing you to use
