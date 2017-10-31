@@ -204,8 +204,9 @@ handle_start () {
     fi
 
     local SOCKET="\$SOCKET_DIR/\${CBD}.socket"
+    local PIDFILE="\$SOCKET_DIR/\${CBD}.pid"
     rm -f "\$SOCKET" || true
-    if ! $sbindir/cbdkit -e "\$NBD" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"; then
+    if ! $sbindir/cbdkit --pidfile="\$PIDFILE" -e "\$NBD" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"; then
         ERRMSG="cbdkit returned with error"
         return 1
     fi
