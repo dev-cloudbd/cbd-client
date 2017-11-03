@@ -205,13 +205,27 @@ handle_start () {
 
     local SOCKET="\$SOCKET_DIR/\${CBD}.socket"
     local PIDFILE="\$SOCKET_DIR/\${CBD}.pid"
-    rm -f "\$SOCKET" || true
+    rm -f "\$SOCKET" "\$PIDFILE" || true
     if ! $sbindir/cbdkit --pidfile="\$PIDFILE" -e "\$NBD" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"; then
         ERRMSG="cbdkit returned with error"
         return 1
     fi
 
-    return 0
+    local PID="\$(cat \$PIDFILE 2>/dev/null)"
+
+    for countdown in \$( seq 10 -1 0 ); do
+        if ! ps "\$PID" >/dev/null 2>&1; then
+            ERRMSG="cbdkit daemon exited unexpectedly"
+            return 1
+        fi
+        if [ -b "/dev/mapper/\$CBD" ]; then
+            return 0
+        fi
+        sleep 1
+    done
+
+    ERRMSG="timed out starting"
+    return 1
 }
 
 #int do_attach (string cbd)

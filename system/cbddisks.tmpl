@@ -10,10 +10,12 @@
 #               Modified for the nbd-client package
 #               by Wouter Verhelst <wouter@debian.org>
 #
+# chkconfig: 2345 24 74
+# description: Start and stop all CloudBD disks.
 ### BEGIN INIT INFO
 # Provides: cbddisks
-# Required-Start: $network $local_fs
-# Required-Stop: $network
+# Required-Start: \$network \$local_fs
+# Required-Stop: \$network
 # Default-Start: S
 # Default-Stop: 0 6
 # X-Start-Before: mountnfs
@@ -35,19 +37,28 @@ case "\$CBDDISKS_ENABLE" in
     ;;
 esac
 
+LOCKFILE="$localstatedir/lock/subsys/cbddisks"
+
 case "\$1" in
     start)
+        touch \$LOCKFILE
         do_start
         ;;
     stop)
+        FORCE_STOP="yes"
         do_stop
+        rm \$LOCKFILE
         ;;
     restart|reload|force-reload)
         do_stop
-        sleep 6
-        do_start
+        if rm \$LOCKFILE 2>/dev/null; then
+            echo "sleeping 5 seconds"
+            sleep 5
+        fi
+        $0 start
         ;;
     force-start)
+        touch \$LOCKFILE
         FORCE_START="yes"
         do_start
         ;;
