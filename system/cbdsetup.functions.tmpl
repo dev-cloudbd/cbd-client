@@ -90,9 +90,9 @@ parse_opts () {
             fi
             CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
             ;;
-        log_level)
+        loglevel)
             if [ -z "\$value" ]; then
-                ERRMSG="no value for option log_level"
+                ERRMSG="no value for option loglevel"
                 return 1
             fi
             case "\$value" in
@@ -101,11 +101,11 @@ parse_opts () {
             critical|error|warning|notice|info|debug|trace1|trace2|trace3|trace4|trace5|trace6|trace7|trace8|trace9|trace10)
                 ;;
             *)
-                ERRMSG="bad value for option log_level"
+                ERRMSG="bad value for option loglevel"
                 return 1
                 ;;
             esac
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS log_level=\$value"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS loglevel=\$value"
             ;;
         noauto)
             IGNORE="yes"
