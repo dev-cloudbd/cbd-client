@@ -351,8 +351,8 @@ handle_stop () {
             if [ ! -z "\$mnt" ]; then
                 if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount"; then
                     umount "\$mnt" 2>/dev/null || umount -f "\$mnt" 2>/dev/null || true
-                    sleep 1 # umount is apparently async, slight delay to hopefully avoid fs kernel writes after close
                 fi
+                sleep 1 # umount is apparently async, slight delay to hopefully avoid fs kernel writes after close
             fi
 
             if [ "\$type" = "lvm" ]; then
