@@ -214,7 +214,7 @@ handle_start () {
 
     local PID="\$(cat \$PIDFILE 2>/dev/null)"
 
-    for countdown in \$( seq 10 -1 0 ); do
+    for countdown in \$( seq 90 -1 0 ); do
         if ! ps "\$PID" >/dev/null 2>&1; then
             ERRMSG="cbdkit daemon exited unexpectedly"
             return 1
@@ -326,7 +326,7 @@ do_start () {
 
 #int handle_stop (string cbd)
 handle_stop () {
-    local CBD NBD name type mnt opencount trycount=0 maxtries=5
+    local CBD NBD name type mnt opencount trycount=0 maxtries=90
     ERRMSG=""
     if ! parse_cbd "\$1"; then
         # ERRMSG set by parse_cbd
