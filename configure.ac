@@ -112,6 +112,7 @@ AC_CONFIG_FILES([Makefile
 		 system/Makefile
 		 system/cbdsetup@.service.sh
 		 system/cbdsetup-generator.sh
+		 system/99-cbd.rules.sh
 		 system/cbd_id.sh
 		 system/cbd_dmsetup.sh
 		 system/cbddisks.sh
