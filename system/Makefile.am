@@ -18,7 +18,7 @@ cbdsetup_dir = $(libdir)/cbdsetup
 cbdsetup__DATA = cbdsetup.functions
 
 EXTRA_DIST = \
-	99-cbd.rules \
+	99-cbd.rules.tmpl \
 	cbd_id.tmpl \
 	cbd_dmsetup.tmpl \
 	cbddisks.tmpl \
@@ -94,6 +94,13 @@ cbdsetup.functions.sh.in: cbdsetup.functions.tmpl sh.tmpl
 	cat sh.tmpl cbdsetup.functions.tmpl > cbdsetup.functions.sh.in
 	echo EOF >> cbdsetup.functions.sh.in
 
-MOSTLYCLEANFILES = cbdsetup@.service cbdsetup-generator cbd_id cbd_dmsetup cbddisks_start cbddisks_stop cbdsetup.functions cbddisks
+99-cbd.rules: 99-cbd.rules.sh
+	sh 99-cbd.rules.sh > 99-cbd.rules
+
+99-cbd.rules.sh.in: 99-cbd.rules.tmpl sh.tmpl
+	cat sh.tmpl 99-cbd.rules.tmpl > 99-cbd.rules.sh.in
+	echo EOF >> 99-cbd.rules.sh.in
+
+MOSTLYCLEANFILES = cbdsetup@.service cbdsetup-generator cbd_id cbd_dmsetup cbddisks_start cbddisks_stop cbdsetup.functions cbddisks 99-cbd.rules
 CLEANFILES = *~
-DISTCLEANFILES = cbdsetup@.service.sh cbdsetup-generator.sh cbd_id.sh cbd_dmsetup.sh cbddisks_start.sh cbddisks_stop.sh cbdsetup.functions.sh cbddisks.sh
+DISTCLEANFILES = cbdsetup@.service.sh cbdsetup-generator.sh cbd_id.sh cbd_dmsetup.sh cbddisks_start.sh cbddisks_stop.sh cbdsetup.functions.sh cbddisks.sh 99-cbd.rules.sh

@@ -840,7 +840,7 @@ int main(int argc, char *argv[])
     }
 
     struct timespec req = { .tv_sec = 0, .tv_nsec = 100000000 };
-    while (check_conn(nbddev + 5, 0) == 0)
+    while (check_conn(nbddev, 0) == 0)
     {
         nanosleep(&req, NULL);
     }

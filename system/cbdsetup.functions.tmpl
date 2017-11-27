@@ -205,7 +205,8 @@ handle_start () {
 
     local SOCKET="\$SOCKET_DIR/\${CBD}.socket"
     local PIDFILE="\$SOCKET_DIR/\${CBD}.pid"
-    rm -f "\$SOCKET" "\$PIDFILE" || true
+    local STOPPER="\$SOCKET_DIR/\${NBD}.stopping"
+    rm -f "\$SOCKET" "\$PIDFILE" "\$STOPPER" || true
     if ! $sbindir/cbdkit -e "\$NBD" --pidfile="\$PIDFILE" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"; then
         ERRMSG="cbdkit returned with error"
         return 1
@@ -395,6 +396,7 @@ handle_stop () {
         fi
     fi
 
+    touch "\$SOCKET_DIR/\${NBD}.stopping"
     cbd-client -d /dev/\$NBD >/dev/null 2>&1 || true
     while [ \$trycount -lt \$maxtries ]; do
         pgrep -f "cbdkit -e \$NBD" >/dev/null 2>&1 || break # sleep until server is finished syncing or max tries
@@ -406,7 +408,7 @@ handle_stop () {
         return 1
     fi
 
-    rm -f "\$SOCKET_DIR/\${CBD}.socket" || true
+    rm -f "\$SOCKET_DIR/\${CBD}.socket" "\$SOCKET_DIR/\${NBD}.stopping" "\$SOCKET_DIR/\${CBD}.pid" || true
     return 0
 }
 
