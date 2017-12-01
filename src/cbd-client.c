@@ -244,6 +244,19 @@ void ask_list(int sock)
         err("Failed writing abort");
     if (write(sock, &len, sizeof(len)) < 0)
         err("Failed writing length");
+    if (read(sock, &magic, sizeof(magic)) < 0)
+        err("Reading magic from server: %m");
+    if (read(sock, &opt_server, sizeof(opt_server)) < 0)
+        err("Reading option: %m");
+    if (read(sock, &reptype, sizeof(reptype)) < 0)
+        err("Reading reply from server: %m");
+    if (read(sock, &len, sizeof(len)) < 0)
+        err("Reading length from server: %m");
+    magic = ntohll(magic);
+    len = ntohl(len);
+    reptype = ntohl(reptype);
+    if (magic != rep_magic)
+        err("Not enough magic from server");
 }
 
 void negotiate(int *sockp, uint64_t *rsize64, uint16_t *flags, char* name, uint32_t needed_flags,
