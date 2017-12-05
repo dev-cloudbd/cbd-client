@@ -555,8 +555,6 @@ void setsizes(int nbd, uint64_t size64, int blocksize, uint32_t flags)
         fprintf(stderr, "bs=%d, sz=%llu bytes\n", blocksize, (unsigned long long) tmp_blocksize * size);
     }
 
-    ioctl(nbd, NBD_CLEAR_SOCK);
-
     /* ignore error as kernel may not support */
     ioctl(nbd, NBD_SET_FLAGS, (unsigned long) flags);
 
@@ -772,6 +770,8 @@ int main(int argc, char *argv[])
             err("Cannot open NBD: %m\nPlease ensure the 'nbd' module is loaded.");
     }
 
+    ioctl(nbd, NBD_CLEAR_SOCK);
+
     for (i = 0; i < num_connections; i++)
     {
         sock = openunix(device_name);
@@ -779,12 +779,13 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
 
         negotiate(&sock, &size64, &flags, nbddev + 5, needed_flags, cflags, opts);
+        finish_sock(sock, nbd);
+
         if (i == 0)
         {
             setsizes(nbd, size64, blocksize, flags);
             set_timeout(nbd, timeout);
         }
-        finish_sock(sock, nbd);
     }
 
     /* Go daemon */
