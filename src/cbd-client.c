@@ -618,14 +618,16 @@ void disconnect(char* device)
         err("Ioctl failed: %m\n");
     printf("sock, ");
 
+    close (nbd);
+
     struct timespec req = { .tv_sec = 0, .tv_nsec = 100000000 };
     while (check_conn(device, 0) == 0)
     {
         nanosleep(&req, NULL);
     }
 
-    if (ioctl(nbd, NBD_CLEAR_SOCK) < 0)
-        err("Ioctl failed: %m\n");
+    //if (ioctl(nbd, NBD_CLEAR_SOCK) < 0)
+    //    err("Ioctl failed: %m\n");
     printf("done\n");
 }
 
@@ -853,14 +855,12 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Kernel call returned.");
     }
 
-    struct timespec req = { .tv_sec = 0, .tv_nsec = 100000000 };
-    while (check_conn(nbddev, 0) == 0)
-    {
-        nanosleep(&req, NULL);
-    }
+    if (ioctl(nbd, NBD_SET_SIZE_BLOCKS, 0) < 0)
+        err("Ioctl/1.1b failed: %m\n");
 
     printf("sock, ");
     ioctl(nbd, NBD_CLEAR_SOCK);
     printf("done\n");
+
     return 0;
 }

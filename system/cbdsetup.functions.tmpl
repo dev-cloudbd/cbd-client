@@ -207,7 +207,7 @@ handle_start () {
     local PIDFILE="\$SOCKET_DIR/\${CBD}.pid"
     local STOPPER="\$SOCKET_DIR/\${NBD}.stopping"
     rm -f "\$SOCKET" "\$PIDFILE" "\$STOPPER" || true
-    if ! $sbindir/cbdkit -e "\$NBD" --pidfile="\$PIDFILE" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -f \$CBD /dev/\$NBD"; then
+    if ! $sbindir/cbdkit -e "\$NBD" --pidfile="\$PIDFILE" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -t 180 -f \$CBD /dev/\$NBD"; then
         ERRMSG="cbdkit returned with error"
         return 1
     fi
@@ -407,6 +407,8 @@ handle_stop () {
         ERRMSG="failed to stop server"
         return 1
     fi
+
+    udevadm trigger "/dev/\$NBD"
 
     rm -f "\$SOCKET_DIR/\${CBD}.socket" "\$SOCKET_DIR/\${NBD}.stopping" "\$SOCKET_DIR/\${CBD}.pid" || true
     return 0
