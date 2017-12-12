@@ -42,12 +42,13 @@ LOCKFILE="$localstatedir/lock/subsys/cbddisks"
 case "\$1" in
     start)
         touch \$LOCKFILE
+        ulimit -l unlimited
         do_start
         ;;
     stop)
         FORCE_STOP="yes"
         do_stop
-        rm \$LOCKFILE
+        rm -f \$LOCKFILE
         ;;
     restart|reload|force-reload)
         do_stop
