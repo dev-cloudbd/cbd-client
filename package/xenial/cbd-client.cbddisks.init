@@ -1,0 +1,69 @@
+#!/bin/sh
+# vim: ft=sh
+#
+# skeleton      example file to build /etc/init.d/ scripts.
+#               This file should be used to construct scripts for /etc/init.d.
+#
+#               Written by Miquel van Smoorenburg <miquels@cistron.nl>.
+#               Modified for Debian GNU/Linux
+#               by Ian Murdock <imurdock@gnu.ai.mit.edu>.
+#               Modified for the nbd-client package
+#               by Wouter Verhelst <wouter@debian.org>
+#
+# chkconfig: 2345 24 74
+# description: Start and stop all CloudBD disks.
+### BEGIN INIT INFO
+# Provides: cbddisks
+# Required-Start: $network $local_fs
+# Required-Stop: $network
+# Default-Start: S
+# Default-Stop: 0 6
+# X-Start-Before: mountnfs
+# X-Stop-After: umountnfs
+# Short-Description: CloudBD Disks
+### END INIT INFO
+#
+# Version:      @(#)skeleton  1.8  03-Mar-1998  miquels@cistron.nl
+
+if [ -r "/lib/cbdsetup/cbdsetup.functions" ]; then
+    . /lib/cbdsetup/cbdsetup.functions
+else
+    exit 0
+fi
+
+case "$CBDDISKS_ENABLE" in
+[Nn]*)
+    exit 0
+    ;;
+esac
+
+LOCKFILE="/var/lock/subsys/cbddisks"
+
+case "$1" in
+    start)
+        touch $LOCKFILE
+        do_start
+        ;;
+    stop)
+        FORCE_STOP="yes"
+        do_stop
+        rm $LOCKFILE
+        ;;
+    restart|reload|force-reload)
+        do_stop
+        if rm $LOCKFILE 2>/dev/null; then
+            echo "sleeping 5 seconds"
+            sleep 5
+        fi
+        cbddisks.sh start
+        ;;
+    force-start)
+        touch $LOCKFILE
+        FORCE_START="yes"
+        do_start
+        ;;
+    *)
+        echo "Usage: cbddisks {start|stop|restart|reload|force-reload|force-start}" >&2
+        exit 1
+        ;;
+esac
