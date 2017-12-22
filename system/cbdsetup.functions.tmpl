@@ -385,7 +385,8 @@ handle_stop () {
             fi
         done
 
-        if ! dmsetup remove --retry "\$CBD" >/dev/null 2>&1; then
+        dmsetup remove --retry "\$CBD" >/dev/null 2>&1
+        if [ -b "/dev/mapper/\$CBD" ]; then
             dmsetup remove --force "\$CBD" >/dev/null 2>&1 || true
         fi
         udevadm settle -t 3
