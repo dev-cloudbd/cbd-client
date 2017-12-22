@@ -9,9 +9,7 @@ OPTIONS+="watch"
 TEST!="pid", ENV{SYSTEMD_READY}="0", GOTO="cloudbd_end"
 TEST=="$runstatedir/cloudbd/%k.stopping", GOTO="cloudbd_end"
 
-IMPORT{db}="CBD_SCANNED"
-ENV{CBD_SCANNED}=="1", IMPORT{db}="CBD_REMOTE", IMPORT{db}="CBD_DEVICE", IMPORT{db}="CBD_UUID", IMPORT{db}="CBD_SIZE", IMPORT{db}="CBD_BLOCKSIZE"
-ENV{CBD_SCANNED}!="1", IMPORT{program}="cbd_id %E{DEVNAME}"
+IMPORT{file}="$runstatedir/cloudbd/\$name.udev"
 ENV{CBD_DEVICE}=="?*", RUN{program}+="cbd_dmsetup \$name %E{CBD_REMOTE}:%E{CBD_DEVICE} %E{CBD_UUID} %E{CBD_SIZE} %E{CBD_BLOCKSIZE}"
 
 LABEL="cloudbd_end"
