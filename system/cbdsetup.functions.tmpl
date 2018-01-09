@@ -90,7 +90,7 @@ parse_opts () {
             fi
             CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
             ;;
-        loglevel|blocks_loglevel|swaths_loglevel|rest_loglevel|ops_loglevel)
+        loglevel|blocks_loglevel|swaths_loglevel|rest_loglevel|ops_loglevel|socket_loglevel|auth_loglevel)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
                 return 1
