@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+# Uncomment this to turn on verbose mode. 
+export DH_VERBOSE=1
+
+DEB_HOST_GNU_SYSTEM := $(shell dpkg-architecture -qDEB_HOST_GNU_SYSTEM)
+
+%:
+	dh $@
+
+override_dh_auto_test:
+
+override_dh_strip:
+	dh_strip --dbg-package=cbd-client-dbg
+
+override_dh_auto_configure: debian/po/templates.pot
+	test -f src/nbd.h
+	if [ -d .git ]; then test $$(git status --porcelain | wc -l) -le 0; fi
+	dh_auto_configure -- --enable-syslog \
+			--prefix="" --libdir=/lib --mandir=/usr/share/man
+
+override_dh_install:
+	dh_install -s
+
+override_dh_installinit:
+	dh_installinit --name cbddisks --no-start -- start 41 S . stop 34 0 6 .
+

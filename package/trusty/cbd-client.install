@@ -1,0 +1,11 @@
+sbin/cbd-client
+sbin/cbddisks_start
+sbin/cbddisks_stop
+etc/cloudbd/cbdtab
+etc/init.d/cbddisks
+usr/share/man/man8/cbd-client.8
+usr/share/man/man5/cbdtab.5
+lib/udev/cbd_id
+lib/udev/cbd_dmsetup
+lib/udev/rules.d/99-cbd.rules
+lib/cbdsetup/cbdsetup.functions

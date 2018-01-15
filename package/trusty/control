@@ -1,0 +1,31 @@
+Source: cbd-client
+Section: admin
+Priority: optional
+Maintainer: Shaun McDowell <smcdowell@cloudbd.io>
+Build-Depends: debhelper (>= 9), libglib2.0-dev (>= 2.26.0)
+Standards-Version: 3.9.4
+Homepage: https://cloudbd.io/
+
+Package: cbd-client
+Architecture: linux-any
+Depends: ${shlibs:Depends}, ${misc:Depends}, debconf | debconf-2.0, cloudbd-plugin, cloudbd-cli, cbdkit
+Description: Network Block Device protocol - client
+ Network Block Device (NBD) is a client/server protocol that
+ emulates a block device (such as a hard disk, a floppy, or a CD-ROM)
+ over the network, thus giving the system the ability to swap over the
+ network, or to use raw network disk space for other purposes.
+ .
+ However, writing to one Network Block Device from different clients
+ simultaneously is not recommended, and would probably result in data
+ loss. If you want multiple clients to share a remote resource, use a
+ network file system such as NFS or Coda.
+ .
+ This package provides the client binary for NBD.
+
+Package: cbd-client-dbg
+Architecture: linux-any
+Section: debug
+Priority: extra
+Depends: ${misc:Depends}
+Description: debugging symbols for cbd-client
+ cbd-client debug symbols
