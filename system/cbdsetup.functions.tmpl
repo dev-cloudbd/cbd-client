@@ -333,7 +333,7 @@ do_start () {
 
 #int handle_stop (string cbd)
 handle_stop () {
-    local CBD NBD name type mnt opencount trycount=0 maxtries=90
+    local CBD NBD name type mnt opencount trycount=0 maxtries=30
     ERRMSG=""
     if ! parse_cbd "\$1"; then
         # ERRMSG set by parse_cbd
@@ -385,11 +385,17 @@ handle_stop () {
             fi
         done
 
-        dmsetup remove --retry "\$CBD" >/dev/null 2>&1
-        if [ -b "/dev/mapper/\$CBD" ]; then
+        dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
+        sleep 1
+        while [ -b "/dev/mapper/\$CBD" ] && [ \$trycount -lt \$maxtries ]; do
             dmsetup remove --force "\$CBD" >/dev/null 2>&1 || true
+            sleep 1
+            trycount=\$(( trycount + 1))
+        done
+        if [ \$trycount -eq \$maxtries ]; then
+            ERRMSG="failed to stop device mapper"
+            return 1
         fi
-        udevadm settle -t 3
     fi
 
     NBD="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -Eo '^nbd[[:digit:]]+\$')"
