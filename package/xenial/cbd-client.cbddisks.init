@@ -37,11 +37,14 @@ case "$CBDDISKS_ENABLE" in
     ;;
 esac
 
-LOCKFILE="/var/lock/subsys/cbddisks"
+SUBSYS="/var/lock/subsys"
+mkdir -p "$SUBSYS"
+LOCKFILE="$SUBSYS/cbddisks"
 
 case "$1" in
     start)
         touch $LOCKFILE
+        ulimit -l unlimited
         do_start
         ;;
     stop)
@@ -60,6 +63,7 @@ case "$1" in
     force-start)
         touch $LOCKFILE
         FORCE_START="yes"
+        ulimit -l unlimited
         do_start
         ;;
     *)
