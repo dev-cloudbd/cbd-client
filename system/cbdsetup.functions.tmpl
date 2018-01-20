@@ -11,7 +11,7 @@ RUNSTATE_D="$runstatedir/cloudbd"
 SYSCONF_D="$sysconfdir/cloudbd"
 
 CBDDISKS_CONF=\${CBDDISKS_CONF-"\$SYSCONF_D/cbddisks.conf"}
-. "\$CBDDISKS_CONF"
+[ -r "\$CBDDISKS_CONF" ] && . "\$CBDDISKS_CONF"
 
 TABFILE="\${CBDDISKS_TAB-"\$SYSCONF_D/cbdtab"}"
 CBDDISKS_ENABLE="\${CBDDISKS_ENABLE-"yes"}"
@@ -387,7 +387,7 @@ handle_stop () {
             if [ "\$type" = "crypt" ]; then
                 local cname="\$(cat /sys/block/"\$kname"/dm/name)"
                 if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
-                    cryptdisks_stop "\$cname" >/dev/null 2>&1 && sleep 1 || true
+                    cryptdisks_stop "\$cname" >/dev/null 2>&1 && sleep 1 || cryptsetup close "\$cname" >/dev/null 2>&1 && sleep 1 || true
                 fi
             fi
 
