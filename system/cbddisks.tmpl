@@ -37,7 +37,9 @@ case "\$CBDDISKS_ENABLE" in
     ;;
 esac
 
-LOCKFILE="$localstatedir/lock/subsys/cbddisks"
+SUBSYS="$localstatedir/lock/subsys"
+mkdir -p "\$SUBSYS"
+LOCKFILE="\$SUBSYS/cbddisks"
 
 case "\$1" in
     start)
@@ -56,7 +58,7 @@ case "\$1" in
             echo "sleeping 5 seconds"
             sleep 5
         fi
-        $0 start
+        \$0 start
         ;;
     force-start)
         touch \$LOCKFILE

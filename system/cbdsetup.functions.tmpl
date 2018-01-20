@@ -1,32 +1,53 @@
-#
+# Copyright 2018 CloudBD, LLC
 # This file is for inclusion with
 #    . $libdir/cbdsetup/cbddisks.functions
 # and should not be executed directly.
 
-PATH="/usr/sbin:/usr/bin:/sbin:/bin"
-TABFILE=\${TABFILE-"$sysconfdir/cloudbd/cbdtab"}
-SOCKET_DIR=\${SOCKET_DIR-"$runstatedir/cloudbd"}
-CBDDISKS_ENABLE="yes"
+# debug output
+# set -x
 
+PATH="/sbin:/bin:/usr/sbin:/usr/bin"
+RUNSTATE_D="$runstatedir/cloudbd"
+SYSCONF_D="$sysconfdir/cloudbd"
+
+CBDDISKS_CONF=\${CBDDISKS_CONF-"\$SYSCONF_D/cbddisks.conf"}
+. "\$CBDDISKS_CONF"
+
+TABFILE="\${CBDDISKS_TAB-"\$SYSCONF_D/cbdtab"}"
+CBDDISKS_ENABLE="\${CBDDISKS_ENABLE-"yes"}"
+CBDDISKS_USER="\${CBDDISKS_USER-"cloudbd"}"
+CBDDISKS_GROUP="\${CBDDISKS_GROUP-"cloudbd"}"
+CBDDISKS_TIMEOUT="\${CBDDISKS_TIMEOUT-"180"}"
+
+# Check for systemd
 if readlink -f /sbin/init | grep -qE "systemd"; then
     IS_SYSTEMD="yes"
 fi
 
-#set -x
-
-# Sanity check #1
+# Sanity check
 [ -x $sbindir/cbdkit ] || exit 0
 [ -x $sbindir/cbd-client ] || exit 0
+[ -x $bindir/cloudbd ] || exit 0
 
-# Sanity check #2
-[ -f "\$TABFILE" ] || exit 0
-
-# void get_cbd_from_socket (string socket_path)
+# Parse and validate cbd value from socket path
+# input:   \$1 cbd socket file path 
+# output:  \$CBD regex checked remote:disk string
+#          \$ERRMSG set to reason for failure if returning an error
+# return:  0 on success
+#          1 on errors
+# int get_cbd_from_socket (string socket_path)
 get_cbd_from_socket () {
     local sock_f="\${1##*/}"
-    CBD="\${sock_f%%.socket}"
+    parse_cbd "\${sock_f%%.socket}" || return 1
+    return 0
 }
 
+# Parse and validate cbd value
+# input:   \$1 unchecked cbd string
+# output:  \$CBD regex checked remote:disk string
+#          \$ERRMSG set to reason for failure if returning an error
+# return:  0 on success
+#          1 on errors
 # int parse_cbd (string cbd);
 parse_cbd () {
     ERRMSG=""
@@ -40,10 +61,16 @@ parse_cbd () {
     return 0
 }
 
+# Parse and validate nbd value
+# input:   \$1 unchecked nbd string
+# output:  \$NBD regex checked nbd[[:digit:]]+ string
+#          \$ERRMSG set to reason for failure if returning an error
+# return:  0 on success
+#          1 on errors
 # int parse_nbd (string nbd);
 parse_nbd () {
     # Strip /dev/
-    local nbd="\$(echo -n \$1 | sed 's/^\/dev\///')"
+    local nbd="\${1##/dev/}"
     ERRMSG=""
 
     if ! expr "x\$nbd" : "xnbd[[:digit:]]\+\$" >/dev/null; then
@@ -119,37 +146,35 @@ parse_opts () {
     return 0
 }
 
-# int get_cbdtab_line_by_nbd (string nbd)
-get_cbdtab_line_by_nbd () {
-    local line="\$(grep -E -m1 "^[[:blank:]]*\${1}[[:blank:]]+.*\$" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
-
-    # Return 1 if NBD not found in TABFILE
-    [ -n "\$line" ] || return 1
-
-    read -r NBD CBD OPTS <<-EOF
-	\$line
-	EOF
-
-    return 0
-}
-
+# Read the cbdtab line for a device and validate all fields
+# input:   \$1 unchecked cbd string
+# output:  \$CBD regex checked remote:disk string
+#          \$ERRMSG set to reason for failure if returning an error
+# return:  0 on success
+#          1 on errors
 # int get_cbdtab_line_by_cbd (string cbd)
 get_cbdtab_line_by_cbd () {
-    local line="\$(grep -E -m1 "^[[:blank:]]*nbd[[:digit:]]+[[:blank:]]+\${1}[[:blank:]#\$]" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
+    # ERRMSG set by parse_cbd
+    parse_cbd "\$1" || return 1
+
+    local line="\$(grep -E -m1 "^[[:blank:]]*nbd[[:digit:]]+[[:blank:]]+\$CBD[[:blank:]#\$]" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
 
     # Return 1 if CBD not found in TABFILE
-    [ -n "\$line" ] || return 1
-    read -r NBD CBD OPTS <<-EOF
+    if [ -z "\$line" ]; then
+        ERRMSG="not found"
+        return 1
+    fi
+
+    # Split the line into the 3 fields
+    local nbd cbd opts
+    read -r nbd cbd opts <<-EOF
 	\$line
 	EOF
 
-    return 0
-}
+    # ERRMSG set by parse funcs
+    parse_cbd "\$cbd" && parse_nbd "\$nbd" && parse_opts "\$opts" || return 1
 
-# int get_cbdtab_line_by_socket (path socket)
-get_cbdtab_line_by_socket () {
-    CBD="\$(basename -s ".socket" "\$1")"
-    NBD="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -oE '^nbd[[:digit:]]+\$')"
+    return 0
 }
 
 # int handle_start (string nbd, string cbd [, string opts])
@@ -158,77 +183,87 @@ get_cbdtab_line_by_socket () {
 #     2: ignored
 #     3: already running
 handle_start () {
-    # Make sure that all required fields are present
-    if [ "x\$1" = "x" ] || [ "x\$2" = "x" ]; then
-        ERRMSG="handle_start missing required arguments"
-        return 1
-    fi
-
-    local NBD="\$1" CBD="\$2" OPTS="\$3" IGNORE="no"
-    ERRMSG=""
-
     # Validate inputs
-    if ! parse_cbd "\$CBD" || ! parse_nbd "\$NBD" || ! parse_opts "\$OPTS"; then
-        # ERRMSG set by parse funcs
-        return 1
-    fi
+    # ERRMSG set by parse funcs
+    parse_nbd "\$1" && parse_cbd "\$2" && parse_opts "\$3" || return 1
 
     # Ignore noauto devices
-    if [ "x\$IGNORE" = "xyes" ] && [ "x\$FORCE_START" = "x" ]; then
+    if [ "x\$IGNORE" = "xyes" ] && [ "x\$FORCE_START" = "x" -o "x\$FORCE_START" = "xno" ]; then
         ERRMSG="noauto"
         return 2
     fi
 
-    # Check if device is already running
-    if cbd-client -l "\$CBD" >/dev/null 2>&1; then
+    # Skip devices already active
+    if dmsetup info "\$CBD" >/dev/null 2>&1; then
         ERRMSG="already running"
         return 3
     fi
 
-    # Make sure NBD device exists
-    if [ ! -r "/dev/\$NBD" ]; then
-        ERRMSG="/dev/\$NBD does not exist"
-        return 1
-    fi
+    local PIDFILE="\$RUNSTATE_D/\${CBD}.pid"
+    if ! cbd-client -l "\$CBD" >/dev/null 2>&1; then
+        # Start the device server
+        # Make sure NBD device exists
+        if [ ! -b "/dev/\$NBD" ]; then
+            ERRMSG="/dev/\$NBD does not exist"
+            return 1
+        fi
 
-    # Make sure NBD device is not busy
-    if cbd-client -c "/dev/\$NBD" >/dev/null 2>&1; then
-        ERRMSG="/dev/\$NBD is busy"
-        return 1
-    fi 
+        # Make sure NBD device is not busy
+        if cbd-client -c "/dev/\$NBD" >/dev/null 2>&1; then
+            ERRMSG="/dev/\$NBD is busy"
+            return 1
+        fi
 
-    # Make sure that target device doesn't exist, error here because server is not up but device mapper is
-    if [ -b "/dev/mapper/\$CBD" ]; then
-        ERRMSG="/dev/mapper/\$CBD is busy"
-        return 1
-    fi
+        # Make sure NBD device is writable
+        if [ ! -w "/dev/\$NBD" ]; then
+            ERRMSG="/dev/\$NBD permission denied"
+            return 1
+        fi
 
-    local SOCKET="\$SOCKET_DIR/\${CBD}.socket"
-    local PIDFILE="\$SOCKET_DIR/\${CBD}.pid"
-    local UDEV="\$SOCKET_DIR/\${NBD}.udev"
-    local STOPPER="\$SOCKET_DIR/\${NBD}.stopping"
-    rm -f "\$SOCKET" "\$PIDFILE" "\$STOPPER" "\$UDEV"  || true
+        local SOCKET="\$RUNSTATE_D/\${CBD}.socket"
+        local UDEV="\$RUNSTATE_D/\${NBD}.udev"
+        local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
 
-    if ! $bindir/cloudbd info -e "\$CBD" > "\$UDEV"; then
-        ERRMSG="unable to contact remote"
-        return 1
-    fi
+        # Clean out any previous driver run files
+        rm -f "\$SOCKET" "\$PIDFILE" "\$UDEV" "\$STOPPING"
 
-    if ! $sbindir/cbdkit -e "\$NBD" --pidfile="\$PIDFILE" -u cloudbd -g cloudbd -U "\$SOCKET" cloudbd device="\$CBD" \$CBDKIT_PARAMS --run "$sbindir/cbd-client -t 180 -f \$CBD /dev/\$NBD"; then
-        ERRMSG="cbdkit returned with error"
-        return 1
+        # Generate udev parameters
+        if ! /bin/cloudbd info -e "\$CBD" > "\$UDEV"; then
+            ERRMSG="unable to contact remote disk"
+            return 1
+        fi
+
+        # Start the server
+        local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_TIMEOUT -f \$CBD /dev/\$NBD"
+        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET cloudbd device=\$CBD \$CBDKIT_PARAMS"
+        if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
+            ERRMSG="cbdkit returned with error"
+            return 1
+        fi
+    else
+        # Server is already active, kick udev to get device mapper started
+        udevadm trigger "/dev/\$NBD"
     fi
 
     local PID="\$(cat \$PIDFILE 2>/dev/null)"
+    if [ -z "\$PID" ]; then
+        ERRMSG="unable to read server pid"
+        return 1
+    fi
 
-    for countdown in \$( seq 90 -1 0 ); do
+    # Wait for udev and device mapper to pick up the new block device
+    local attempt=0 max_attempts=30
+    while [ \$attempt -lt \$max_attempts ]; do
+        # Return success if device mapper picks up \$CBD
+        dmsetup info "\$CBD" >/dev/null 2>&1 && return 0
+
+        # Check that server is still running        
         if ! ps "\$PID" >/dev/null 2>&1; then
-            ERRMSG="cbdkit daemon exited unexpectedly"
+            ERRMSG="server exited unexpectedly"
             return 1
         fi
-        if [ -b "/dev/mapper/\$CBD" ]; then
-            return 0
-        fi
+
+        attempt=\$(( attempt + 1 ))
         sleep 1
     done
 
@@ -236,48 +271,26 @@ handle_start () {
     return 1
 }
 
-#int do_attach (string cbd)
-do_systemd_attach () {
-    local NBD CBD OPTS
-
-    [ -d "\$SOCKET_DIR" ] || mkdir -m 770 "\$SOCKET_DIR"
-
-    if [ "x\$1" = "x" ]; then
-        >&2 echo "do_attach missing required argument"
-        return 1
-    fi
-
-    if ! get_cbdtab_line_by_cbd "\$1"; then
-        >&2 echo "CloudBD disk '\$1' not found"
-        return 1
-    fi
-
-    handle_cbdtab_line_start "\$NBD" "\$CBD" "\$OPTS"
-    if [ "\$?" -ne 0 ]; then
-        >&2 echo "\$CBD (\$output)"
-        return 1
-    fi
-
-    echo "\$CBD (started)"
-    return 0
-}
-
 # int do_start ([string cbd]*)
 do_start () {
-    local NBD CBD OPTS ret=0
+    local ret=0
 
+    # Ensure necessary modules are loaded
     modprobe -qb dm-mod || true
     modprobe -qb nbd || true
-    dmsetup mknodes >/dev/null 2>&1 || true
 
-    [ -d "\$SOCKET_DIR" ] || mkdir -m 770 "\$SOCKET_DIR"
+    # Create the runstate directory if missing
+    [ -d "\$RUNSTATE_D" ] || mkdir -p -m 770 "\$RUNSTATE_D"
 
+    # Start all configured disks if no parameters passed
     if [ "\$#" -eq 0 ]; then
         log_action_begin_msg "Starting CloudBD disks"
+
+        local nbd cbd opts
         # filter empty lines, comment lines, and end-of-line comments
-        while read NBD CBD OPTS; do
-            if [ "x\$CBD" = "x" ]; then continue; fi
-            handle_start "\$NBD" "\$CBD" "\$OPTS"
+        while read nbd cbd opts; do
+            if [ "x\$cbd" = "x" ]; then continue; fi
+            handle_start "\$nbd" "\$cbd" "\$opts"
             case \$? in
                 0) log_action_cont_msg "Starting \$CBD (started)"
                    log_action_end_msg 0
@@ -300,12 +313,14 @@ do_start () {
         done <<- EOF
 	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/ *#.*\$//g')
 	EOF
+
         log_action_cont_msg "CloudBD disks started"
         log_action_end_msg \$ret
     else
-        for CBD in "\$@"; do
-            if ! get_cbdtab_line_by_cbd "\$CBD"; then
-                log_failure_msg "\$CBD (not found)"
+        local cbd
+        for cbd in "\$@"; do
+            if ! get_cbdtab_line_by_cbd "\$cbd"; then
+                log_failure_msg "\$cbd (not found)"
                 ret=1
                 continue
             fi
@@ -333,17 +348,12 @@ do_start () {
 
 #int handle_stop (string cbd)
 handle_stop () {
-    local CBD NBD name type mnt opencount trycount=0 maxtries=30
-    ERRMSG=""
-    if ! parse_cbd "\$1"; then
-        # ERRMSG set by parse_cbd
-        return 1
-    fi
+    parse_cbd "\$1" || return 1 # ERRMSG set by parse func
 
-    dmsetup mknodes "\$CBD" || true
-
-    if [ -b "/dev/mapper/\$CBD" ]; then
-        if [ -z "\$FORCE_STOP" ]; then
+    # Check for device mapper disk \$CBD
+    local dmname="\$(dmsetup info -c --noheadings -o blkdevname \$CBD 2>/dev/null)"
+    if [ -n "\$dmname" ]; then
+        if [ "x\$FORCE_STOP" = "x" -o "x\$FORCE_STOP" = "xno" ]; then
             opencount="\$(dmsetup info -c --noheadings -o open "\$CBD" 2>/dev/null)"
             if [ -z "\$opencount" ]; then
                 ERRMSG="unable to query opencount"
@@ -355,53 +365,58 @@ handle_stop () {
         fi
 
         # lets try to be the good guy and stop all services using us cleanly before yanking the plug on the device
-        lsblk -l --noheadings -o NAME,TYPE,MOUNTPOINT "/dev/mapper/\$CBD" | tac | while read name type mnt; do
+        local kname type mnt
+        lsblk -l --noheadings -o KNAME,TYPE,MOUNTPOINT "/dev/\$dmname" 2>/dev/null | tac | while read kname type mnt; do
             if [ ! -z "\$mnt" ]; then
-                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount"; then
-                    umount "\$mnt" 2>/dev/null || umount -f "\$mnt" 2>/dev/null || true
+                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1; then
+                    umount "\$mnt" >/dev/null 2>&1 && sleep 1 || umount -f "\$mnt" >/dev/null 2>&1 && sleep 1 || true
                 fi
-                sleep 1 # umount is apparently async, slight delay to hopefully avoid fs kernel writes after close
+            else
+                umount "/dev/\$kname" >/dev/null 2>&1 && sleep 1 || true
             fi
 
             if [ "\$type" = "lvm" ]; then
-                lvname="\$(dmsetup splitname --noheadings "\$name" -o lv_name 2>/dev/null)"
-                vgname="\$(dmsetup splitname --noheadings "\$name" -o vg_name 2>/dev/null)"
+                local lvmname="\$(cat /sys/block/"\$kname"/dm/name)"
+                local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
+                local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
                 if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
-                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 || true
-                    udevadm settle -t 3
+                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 && sleep 1 || true
                 fi
             fi
 
             if [ "\$type" = "crypt" ]; then
-                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${name}.service" >/dev/null 2>&1; then
-                    cryptdisks_stop "\$name" >/dev/null 2>&1 || true
+                local cname="\$(cat /sys/block/"\$kname"/dm/name)"
+                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
+                    cryptdisks_stop "\$cname" >/dev/null 2>&1 && sleep 1 || true
                 fi
-                udevadm settle -t 3
             fi
 
             if [ "\$type" = "part" ]; then
-                dmsetup remove "\$name" >/dev/null 2>&1 || true
-                udevadm settle -t 3
+                local pname="\$(cat /sys/block/"\$kname"/dm/name)"
+                dmsetup remove "\$pname" >/dev/null 2>&1 && sleep 1 || true
             fi
         done
 
-        dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
-        sleep 1
-        while [ -b "/dev/mapper/\$CBD" ] && [ \$trycount -lt \$maxtries ]; do
-            dmsetup remove --force "\$CBD" >/dev/null 2>&1 || true
-            sleep 1
+        # Remove CBD from device mapper
+        local trycount=0 maxtries=30
+        dmsetup remove --retry "\$CBD" >/dev/null 2>&1 && sleep 1 || true
+        while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$trycount -lt \$maxtries ]; do
+            dmsetup remove --force "\$CBD" >/dev/null 2>&1 && sleep 1 || true
             trycount=\$(( trycount + 1))
         done
-        if [ \$trycount -eq \$maxtries ]; then
+
+        # Check if we were successful at stopping device mapper
+        if dmsetup info "\$CBD" >/dev/null 2>&1; then
             ERRMSG="failed to stop device mapper"
             return 1
         fi
     fi
 
-    NBD="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -Eo '^nbd[[:digit:]]+\$')"
     # Check if device is running and if not if it is configured
-    if [ "x\$NBD" = "x" ]; then
-        rm -f "\$SOCKET_DIR/\${CBD}.socket" "\$SOCKET_DIR/\${CBD}.pid" || true
+    local nbd="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -Eo '^nbd[[:digit:]]+\$')"
+
+    if [ "x\$nbd" = "x" ]; then
+        rm -f "\$RUNSTATE_D/\${CBD}.socket" "\$RUNSTATE_D/\${CBD}.pid"
         if ! get_cbdtab_line_by_cbd "\$CBD"; then
             ERRMSG="not found"
             return 1
@@ -409,22 +424,36 @@ handle_stop () {
             ERRMSG="not running"
             return 2
         fi
+    else
+        parse_nbd "\$nbd" || return 1 # ERRMSG set by parse func
     fi
 
-    touch "\$SOCKET_DIR/\${NBD}.stopping"
-    cbd-client -d /dev/\$NBD >/dev/null 2>&1 || true
-    while [ \$trycount -lt \$maxtries ]; do
-        pgrep -f "cbdkit -e \$NBD" >/dev/null 2>&1 || break # sleep until server is finished syncing or max tries
+    # Locate PID of server
+    local PID="\$(cat "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null)"
+    if [ -z "\$PID" ]; then
+        ERRMSG="unable to read server pid"
+        return 1
+    fi
+
+    touch "\$RUNSTATE_D/\${NBD}.stopping"
+    cbd-client -d "/dev/\$NBD" >/dev/null 2>&1 || true
+
+    # Wait until server is finished stopping or max tries
+    local attempt=0 max_attempts=30
+    while [ ps "\$PID" >/dev/null 2>&1 ] && [ \$trycount -lt \$maxtries ]; do
         sleep 1
         trycount=\$(( trycount + 1 ))
     done
-    if [ \$trycount -eq \$maxtries ]; then
+
+    if [ ps "\$PID" >/dev/null 2>&1 ]; then
         ERRMSG="failed to stop server"
         return 1
     fi
 
-    rm -f "\$SOCKET_DIR/\${CBD}.socket" "\$SOCKET_DIR/\${NBD}.stopping" "\$SOCKET_DIR/\${CBD}.pid" "\$SOCKET_DIR/\${NBD}.udev" || true
+    # Clean up the runstate files
+    rm -f "\$RUNSTATE_D/\${CBD}.socket" "\$RUNSTATE_D/\${NBD}.stopping" "\$RUNSTATE_D/\${CBD}.pid" "\$RUNSTATE_D/\${NBD}.udev"
 
+    # Kick udev
     udevadm trigger "/dev/\$NBD"
 
     return 0
@@ -432,14 +461,15 @@ handle_stop () {
 
 #int do_stop ([string cbd]*)
 do_stop () {
-    local CBD NBD SOCKET result ret=0
+    local ret=0
 
-    [ -d "\$SOCKET_DIR" ] || return 0
+    [ -d "\$RUNSTATE_D" ] || return 0
 
     if [ "\$#" -eq 0 ]; then
         log_action_begin_msg "Stopping CloudBD disks"
-        for SOCKET in \$(ls \$SOCKET_DIR/*.socket 2>/dev/null); do
-            get_cbd_from_socket "\$SOCKET"
+        local socket
+        for socket in \$(ls \$RUNSTATE_D/*.socket 2>/dev/null); do
+            get_cbd_from_socket "\$socket" || continue
             handle_stop "\$CBD"
             case \$? in
                 0) log_action_cont_msg "Stopping \$CBD (stopped)"
@@ -461,7 +491,14 @@ do_stop () {
         log_action_cont_msg "CloudBD disks stopped"
         log_action_end_msg \$ret
     else
-        for CBD in "\$@"; do
+        local cbd
+        for cbd in "\$@"; do
+            if ! parse_cbd "\$cbd"; then
+                log_failure_msg "Stopping \$cbd (\$ERRMSG)"
+                ret=1
+                continue
+            fi
+
             handle_stop "\$CBD"
             case \$? in
                 0) log_success_msg "Stopping \$CBD (stopped)"
@@ -642,5 +679,4 @@ log_warning_msg () {
         echo " * \$@" || true
     fi
 }
-
 
