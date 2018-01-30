@@ -3,11 +3,9 @@ Description=CloudBD Disk %i
 Documentation=man:cbdtab(5) man:cbdsetup-generator(8) man:cbdsetup@.service(8)
 SourcePath=@sysconfdir@/cloudbd/cbdtab
 DefaultDependencies=no
-Requires=network-online.target local-fs.target
-After=network-online.target local-fs.target cbdsetup-pre.target nbd-client.service
-Wants=remote-fs-pre.target
+Wants=network-online.target remote-fs-pre.target
+After=network-online.target local-fs.target cbdsetup-pre.target
 Before=remote-fs-pre.target cbdsetup.target
-Conflicts=umount.target
 
 [Service]
 Type=forking
