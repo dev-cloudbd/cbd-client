@@ -104,7 +104,7 @@ parse_opts () {
         value=\$(echo "\$opt" | sed '/=/!d;s/^.*=//')
 
         case "\$param" in
-        connections|threads|block_buffers|block_timeout|swath_buffers|swath_timeout)
+        connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
                 return 1
