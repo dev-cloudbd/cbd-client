@@ -166,13 +166,9 @@ get_cbdtab_line_by_cbd () {
     fi
 
     # Split the line into the 3 fields
-    local nbd cbd opts
-    read -r nbd cbd opts <<-EOF
+    read -r NBD CBD OPTS <<-EOF
 	\$line
 	EOF
-
-    # ERRMSG set by parse funcs
-    parse_cbd "\$cbd" && parse_nbd "\$nbd" && parse_opts "\$opts" || return 1
 
     return 0
 }
