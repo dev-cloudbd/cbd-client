@@ -397,7 +397,8 @@ handle_stop () {
         local trycount=0 maxtries=30
         dmsetup remove --retry "\$CBD" >/dev/null 2>&1 && sleep 1 || true
         while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$trycount -lt \$maxtries ]; do
-            dmsetup remove --force "\$CBD" >/dev/null 2>&1 && sleep 1 || true
+            dmsetup remove --force "\$CBD" >/dev/null 2>&1 || true
+            sleep 1
             trycount=\$(( trycount + 1))
         done
 
