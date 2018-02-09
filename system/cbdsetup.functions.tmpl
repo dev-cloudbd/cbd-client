@@ -421,7 +421,7 @@ handle_stop () {
         if [ -z "\$pid" ]; then
             while cbd-client -l "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
                 sleep 1
-                timeout=\$(( timeout + 1))
+                timeout=\$(( timeout + 1 ))
             done
 
             if cbd-client -l "\$CBD" >/dev/null 2>&1; then
@@ -431,7 +431,7 @@ handle_stop () {
         else
             cbd-client -d "/dev/\$NBD" >/dev/null 2>&1 || true
 
-            while ps "\$pid" >/dev/null 2>&1 ] && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
+            while ps "\$pid" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
                 sleep 1
                 timeout=\$(( timeout + 1 ))
             done
