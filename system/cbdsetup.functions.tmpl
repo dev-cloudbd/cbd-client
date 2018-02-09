@@ -395,12 +395,15 @@ handle_stop () {
                 local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
                 local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
                 if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
-                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 || true
+                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
+                            dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
                 fi
             elif [ "\$type" = "crypt" ]; then
                 local cname="\$(cat /sys/block/"\$kname"/dm/name)"
                 if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
-                    cryptdisks_stop "\$cname" >/dev/null 2>&1 || cryptsetup close "\$cname" >/dev/null 2>&1 || true
+                    cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
+                            cryptsetup close "\$cname" >/dev/null 2>&1 ||
+                            dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
                 fi
             elif [ "\$type" = "part" ]; then
                 local pname="\$(cat /sys/block/"\$kname"/dm/name)"
