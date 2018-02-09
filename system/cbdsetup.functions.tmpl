@@ -354,7 +354,7 @@ do_start () {
 handle_stop () {
     # Validate input
     parse_cbd "\$1" || return 1 # ERRMSG set by parse func
-
+    local ret=0
     local dmname="\$(dmsetup info -c --noheadings -o blkdevname \$CBD 2>/dev/null)"
 
     # Check for a busy device_mapper disk and FORCE_STOP option
