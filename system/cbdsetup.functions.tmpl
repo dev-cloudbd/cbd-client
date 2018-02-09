@@ -194,8 +194,13 @@ handle_start () {
 
     # Skip devices already active
     if dmsetup info "\$CBD" >/dev/null 2>&1; then
-        ERRMSG="already running"
-        return 3
+        if cbd-client -l "\$CBD" >/dev/null 2>&1; then
+            ERRMSG="already running"
+            return 3
+        else
+            ERRMSG="device mapper busy"
+            return 1
+        fi
     fi
 
     local PIDFILE="\$RUNSTATE_D/\${CBD}.pid"
@@ -376,15 +381,13 @@ handle_stop () {
 
     # Stop all services using device cleanly before yanking the plug
     local timeout=0
-    while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_START_TIMEOUT ]; do
+    while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
         local kname type mnt
-        lsblk -l --noheadings -o KNAME,TYPE,MOUNTPOINT "/dev/\$dmname" 2>/dev/null | tac | while read kname type mnt; do
-            # Always attempt to stop mounts due to ubuntu trusty lsblk not displaying nbd mount points
+        lsblk -l --noheadings -o KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read kname type; do
+            mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
             if [ ! -z "\$mnt" ]; then
                 [ "\$IS_SYSTEMD" = "yes" ] && systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 ||
-                        umount "\$mnt" >/dev/null 2>&1 || umount -f "\$mnt" >/dev/null 2>&1 || true
-            else
-                umount "/dev/\$kname" >/dev/null 2>&1 || true
+                        umount -f "\$mnt" >/dev/null 2>&1 || break
             fi
 
             if [ "\$type" = "lvm" ]; then
@@ -407,7 +410,7 @@ handle_stop () {
             fi
         done
         sleep 1
-        timeout=\$(( timeout + 1))
+        timeout=\$(( timeout + 1 ))
     done
 
     # Disconnect cloudbd from nbd
@@ -421,7 +424,7 @@ handle_stop () {
                 timeout=\$(( timeout + 1))
             done
 
-            if cbd-client -l "\$CBD" >/dev/null 2>&1;
+            if cbd-client -l "\$CBD" >/dev/null 2>&1; then
                 ERRMSG="failed to stop server"
                 ret=1
             fi
@@ -445,9 +448,14 @@ handle_stop () {
         [ "\$ret" -eq 0 ] && rm -f "\$RUNSTATE_D/\${NBD}.udev" "\$RUNSTATE_D/\${NBD}.stopping" || true
     fi
 
-    [ "\$ret" -eq 0 ] && rm -f "\$RUNSTATE_D/\${CBD}.socket" "\$RUNSTATE_D/\${CBD}.pid"
+    if [ "\$ret" -eq 0 ] && dmsetup info "\$CBD" >/dev/null 2>&1; then
+        ret=1
+        ERRMSG="failed to stop device mapper"
+    else
+        rm -f "\$RUNSTATE_D/\${CBD}.socket" "\$RUNSTATE_D/\${CBD}.pid"
+    fi
 
-    return 0
+    return \$ret
 }
 
 #int do_stop ([string cbd]*)
@@ -648,17 +656,29 @@ log_daemon_msg () {
 }
 
 log_success_msg () {
-    echo " * \$@" || true
+    if [ -z \$IS_SYSTEMD ]; then
+        echo " * \$@"
+    else
+        echo "\$@"
+    fi
 }
 
 log_failure_msg () {
     if log_use_fancy_output; then
         RED=\`\$TPUT setaf 1\`
         NORMAL=\`\$TPUT op\`
-        echo " \$RED*\$NORMAL \$@" || true
+        if [ -z \$IS_SYSTEMD ]; then
+            echo " \$RED*\$NORMAL \$@"
+        else
+            echo "\$RED\$@\$NORMAL"
+        fi
     else
-        echo " * \$@" || true
-    fi
+        if [ -z \$IS_SYSTEMD ]; then
+           echo " * \$@"
+        else
+           echo "\$@"
+        fi
+     fi
 }
 
 log_warning_msg () {
