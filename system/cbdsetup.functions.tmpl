@@ -324,7 +324,7 @@ do_start () {
         local cbd
         for cbd in "\$@"; do
             if ! get_cbdtab_line_by_cbd "\$cbd"; then
-                log_failure_msg "\$cbd (not found)"
+                log_failure_msg "\$cbd (\$ERRMSG)"
                 ret=1
                 continue
             fi
