@@ -34,7 +34,9 @@ remote block devices over a TCP/IP network.
 %{_sbindir}/cbddisks_start
 %{_sbindir}/cbddisks_stop
 %config(noreplace) %{_sysconfdir}/cloudbd/cbdtab
-%config(noreplace) %{_sysconfdir}/cloudbd/remotes.d/aws.conf.sample
+%{_sysconfdir}/cloudbd/remotes.d/aws.conf.sample
+%{_sysconfdir}/cloudbd/remotes.d/gcs.conf.sample
+%{_sysconfdir}/cloudbd/remotes.d/openstack.conf.sample
 %{_sysconfdir}/init.d/cbddisks
 %{_libdir}/udev/cbd_id
 %{_libdir}/udev/cbd_dmsetup
