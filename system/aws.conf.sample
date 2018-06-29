@@ -1,0 +1,46 @@
+### Sample remote conf file for AWS S3
+# See https://www.cloudbd.io/docs/introduction.html for more info.
+
+### Remote Type and Auth Version
+# Defines the type of auth for this remote. For AWS S3 only v4 auth is
+# supported.
+#
+# example type for AWS S3 remotes:
+#   type=s3_v4
+
+### Endpoint and Region
+# We recommend using the HTTP protocol for S3 endpoint urls when attaching
+# CloudBD disks on AWS EC2 instances and using the HTTPS protocol when
+# attaching disks to S3 from servers located outside of AWS. Buckets must
+# be created in the same region as the EC2 instances using the disks.
+#
+# See https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region for
+# more info on s3 endpoint urls and region names
+#
+# example endpoint_url and region for US East (Ohio):
+#   endpoint_url=http://s3.us-east-2.amazonaws.com
+#   region=us-east-2
+
+### IAM User and Bucket
+# The driver requires an AWS IAM access key id and secret key with permission
+# to access the S3 bucket that will contain disk data.
+#
+# See https://www.cloudbd.io/docs/gs-setup-remote.html#amazon for more info on
+# creating a dedicated AWS IAM user for CloudBD to securely access an AWS S3
+# bucket.
+#
+# example keys and bucket
+#   access_key_id=AKIAIOSFODNN7EXAMPLE
+#   secret_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+#   bucket=cloudbd-data1-us-east-2.mycompany.com
+
+### AWS S3 Config File Template
+# Fill values in <> with your settings and rename file to
+# /etc/cloudbd/remotes.d/<REMOTE_NAME>.conf
+type=s3_v4
+endpoint_url=<ENDPOINT_URL>
+region=<REGION>
+access_key_id=<ACCESS_KEY_ID>
+secret_key=<SECRET_KEY>
+bucket=<BUCKET>
+

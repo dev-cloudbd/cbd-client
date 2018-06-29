@@ -7,6 +7,7 @@ URL:            https://www.github.com/dev-cloudbd/cbd-client
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  glib2-devel
 Requires(pre): /usr/sbin/useradd, /usr/bin/getent, /usr/sbin/groupadd
+Requires:       cloudbd >= 1.0.0
 
 %pre
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
@@ -33,6 +34,7 @@ remote block devices over a TCP/IP network.
 %{_sbindir}/cbddisks_start
 %{_sbindir}/cbddisks_stop
 %config(noreplace) %{_sysconfdir}/cloudbd/cbdtab
+%config(noreplace) %{_sysconfdir}/cloudbd/remotes.d/aws.conf.sample
 %{_sysconfdir}/init.d/cbddisks
 %{_libdir}/udev/cbd_id
 %{_libdir}/udev/cbd_dmsetup
