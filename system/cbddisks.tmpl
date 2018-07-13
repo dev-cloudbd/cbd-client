@@ -63,6 +63,7 @@ case "\$1" in
     force-start)
         touch \$LOCKFILE
         FORCE_START="yes"
+        ulimit -l unlimited
         do_start
         ;;
     *)
