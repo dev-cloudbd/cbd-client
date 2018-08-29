@@ -1,6 +1,6 @@
 Name:           cbd-client
-Version:        3.15.3
-Release:        1%{dist}
+Version:        %{_version}
+Release:        %{_release}%{dist}
 Summary:        CloudBD Network Block Device user-space tools
 License:        GPLv2
 URL:            https://www.github.com/dev-cloudbd/cbd-client
