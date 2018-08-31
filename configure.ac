@@ -3,9 +3,10 @@ dnl (c) 1998 Martin Mares <mj@ucw.cz>, (c) 2000 Pavel Machek <pavel@ucw.cz>,
 dnl (c) 2003-2006 Wouter Verhelst <wouter@debian.org>
 dnl (c) 2017 CloudBD, LLC
 AC_INIT([cbd-client],
-  [3.15.3],
+  [4.0.0],
   [smcdowell@cloudbd.io],,
   [https://www.github.com/dev-cloudbd/cbd-client/])
+
 AM_INIT_AUTOMAKE(foreign subdir-objects)
 AM_MAINTAINER_MODE([enable])
 AC_CONFIG_MACRO_DIR([support])
@@ -100,6 +101,8 @@ AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"
 
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$localstatedir/run\"'"
 AC_SUBST(AM_CPPFLAGS)
+AC_SUBST(PACKAGE_TAG)
+AC_SUBST(PACKAGE_DIST)
 AC_CONFIG_SRCDIR([src/nbd.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([Makefile
@@ -119,6 +122,8 @@ AC_CONFIG_FILES([Makefile
 		 system/cbddisks_start.sh
 		 system/cbddisks_stop.sh
 		 system/cbdsetup.functions.sh
+                 package/trusty/changelog
+                 package/xenial/changelog
 		])
 AC_OUTPUT
 

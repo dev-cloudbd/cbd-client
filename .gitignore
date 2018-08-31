@@ -57,3 +57,4 @@ tests/run/buffer.c
 .debhelper
 *debhelper.log
 build/
+/package/*/changelog
