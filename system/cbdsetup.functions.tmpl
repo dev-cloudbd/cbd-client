@@ -160,7 +160,7 @@ get_cbdtab_line_by_cbd () {
     # ERRMSG set by parse_cbd
     parse_cbd "\$1" || return 1
 
-    local line="\$(grep -E -m1 "^[[:blank:]]*nbd[[:digit:]]+[[:blank:]]+\$CBD[[:blank:]#\$]" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
+    local line="\$(grep -E -m1 "^[[:blank:]]*nbd[[:digit:]]+[[:blank:]]+\$CBD([[:blank:]#]|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//')"
 
     # Return 1 if CBD not found in TABFILE
     if [ -z "\$line" ]; then
