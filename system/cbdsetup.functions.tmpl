@@ -518,7 +518,7 @@ do_stop () {
     fi
 
     # hack for systemd bug not deleting all virtual disk paths
-    [ -z "\$IS_SYSTEMD" ] || systemctl daemon-reload || true
+    # race condition here with multiple disks [ -z "\$IS_SYSTEMD" ] || systemctl daemon-reload || true
 
     return \$ret
 }
