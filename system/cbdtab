@@ -1,14 +1,22 @@
-# This file configures CloudBD NBD devices for use with cbd-client.
-# Its fields are:
+# This file configures the CloudBD disks that will attach to this server.
 #
-# nbd_dev	[remote:]device_id	[options]
+# CloudBD disks attach using the nbd kernel module. Each disk requires an
+# 	available nbd device to connect through. The default nbd kernel module
+# 	settings create 16 nbd devices available for use named nbd[0-15].
 #
-# For more information, see cbdtab(5)
-# This default configuration has no devices configured.
+# <nbd#>	Available nbd device on this machine
+# <remote>	Storage remote name described by a config file at
+# 		/etc/cloudbd/remotes.d/<remote>.conf
+# <disk>	Name of a disk stored on <remote> created by the cloudbd CLI
 #
-# Example: bind remote=default device_id=testdisk to /dev/nbd0
-# nbd0		testdisk
+# Attached CloudBD disks will appear in /dev/mapper/ as a block device named
+# 	/dev/mapper/<remote>:<disk>
 #
-# Example: bind remote=rem1 device_id=testdisk2 to /dev/nbd1 with options
-# nbd1		rem1:testdisk2		bs=4096,timeout=10
+# For more information on attaching disks and disk driver options, see the
+#	documentation at https://www.cloudbd.io/docs/introduction.html
+
+# Example Disk Configuration
+# <nbd#>   <remote>:<disk>          [driver options]
+# nbd0     remote1:example_disk1
+# nbd1     remote2:example_disk2    connections=32,block_buffers=24,threads=4
 

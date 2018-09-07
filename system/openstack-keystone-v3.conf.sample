@@ -1,0 +1,31 @@
+# OpenStack Keystone v3 - Sample storage remote config file
+# See https://www.cloudbd.io/docs/gs-setup-remote-openstack.html for more info.
+
+# Remote Type
+# Defines the type of auth for this remote. CloudBD supports several OpenStack
+# auth types. For Keystone v3 auth use type = swift_v3.
+type = swift_v3
+
+# Auth URL
+# The Keystone v3 identity service URL.
+auth_url = http://keystone:5000/v3
+
+# Storage Location
+# Containers belong to a project and projects reside within a project domain.
+# The project domain is optional and will use 'default' if not set.
+# project_domain = default
+project = cloudbd
+container = sample-container
+
+# Credentials
+# The credentials for a user with swift operator access to the project. The
+# user domain is optional and will use 'default' if not set.
+# user_domain = default
+user = cloudbd
+password = 12345
+
+# Region
+# The region is optional and will use the first storage endpoint returned if
+# not set. If more than 1 region exists for your Swift storage deployment this
+# should be set to the closest region.
+# region = RegionOne

@@ -1,0 +1,20 @@
+# OpenStack SwiftStack - Sample storage remote config file
+# See https://www.cloudbd.io/docs/gs-setup-remote-openstack.html for more info.
+
+# Remote Type
+# Defines the type of auth for this remote. CloudBD supports several OpenStack
+# auth types. For SwiftStack auth use type = swift_v1.
+type = swift_v1
+
+# Auth URL
+# The SwiftStack API Auth URL.
+auth_url = http://saio/auth/v1.0/
+
+# Credentials
+# The credentials for the SwiftStack user created for CloudBD disks.
+user = cloudbd
+password = 12345
+
+# Container
+# The primary container for this storage remote.
+container = sample-container

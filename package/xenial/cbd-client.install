@@ -3,8 +3,10 @@ sbin/cbddisks_start
 sbin/cbddisks_stop
 etc/cloudbd/cbdtab
 etc/cloudbd/remotes.d/aws.conf.sample
-etc/cloudbd/remotes.d/openstack.conf.sample
 etc/cloudbd/remotes.d/gcs.conf.sample
+etc/cloudbd/remotes.d/openstack-keystone-v3.conf.sample
+etc/cloudbd/remotes.d/openstack-keystone-v2.conf.sample
+etc/cloudbd/remotes.d/openstack-swiftstack.conf.sample
 etc/init.d/cbddisks
 usr/share/man/man8/cbd-client.8
 usr/share/man/man5/cbdtab.5

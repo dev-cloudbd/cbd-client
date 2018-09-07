@@ -6,7 +6,13 @@ systemd_generator__SCRIPTS = cbdsetup-generator
 conf_cloudbd_dir = $(sysconfdir)/cloudbd
 conf_cloudbd__DATA = cbdtab
 conf_cloudbd_remotes.d_dir = $(sysconfdir)/cloudbd/remotes.d
-conf_cloudbd_remotes.d__DATA = aws.conf.sample gcs.conf.sample openstack.conf.sample
+conf_cloudbd_remotes.d__DATA = \
+	aws.conf.sample \
+	gcs.conf.sample \
+	openstack-keystone-v3.conf.sample \
+	openstack-keystone-v2.conf.sample \
+	openstack-swiftstack.conf.sample
+
 conf_init_dir = $(sysconfdir)/init.d
 conf_init__SCRIPTS = cbddisks
 
@@ -32,7 +38,11 @@ EXTRA_DIST = \
 	cbdsetup@.service.tmpl \
 	cbdsetup-generator.tmpl \
 	cbdtab \
-	aws.conf.sample gcs.conf.sample openstack.conf.sample \
+	aws.conf.sample \
+	gcs.conf.sample \
+	openstack-keystone-v3.conf.sample \
+	openstack-keystone-v2.conf.sample \
+	openstack-swiftstack.conf.sample \
 	sh.tmpl 
 
 cbdsetup@.service: cbdsetup@.service.sh

@@ -1,0 +1,17 @@
+# Google Cloud Storage - Sample storage remote config file
+# See https://www.cloudbd.io/docs/gs-setup-remote-gcs.html for more info.
+
+# Remote Type
+# Defines the type of auth for this remote. For Google Cloud Storage only
+# OAuth 2.0 is supported.
+type = gcs_oauth_v2
+
+# Bucket
+# The storage remote's GCS bucket
+bucket = sample-bucket.mycompany.com
+
+# Service Account
+# The driver requires a Google service account with permission to read and
+# write to the storage remote's GCS bucket.
+client_email = cloudbd-secure@example.iam.gserviceaccount.com
+private_key = -----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCijFkuX7a1FNDH\nufLiSutoZWzl25yhHrFbuuKkSIoyBPnYkyG2T2otZ7aIqxyIPIuJL91XEaxqqUQu\n9s4JSKeh6YI60yN/5k8DsXm6jIl/r5K0BBd8Slq2d50igzHbh8Ye7gX5UVjbAPXm\nypP3mY491GuBLHdVjcjLK2rT2P3tZ7HqKnQunKHefqlPwLecdDKeDPgzL7tr8s0C\nQ7PUCb5wDcFFP0abgfk9o2SleqdTtflYW/o5/Kf9swCgoVYsfCuuQSSLnUdsZO4D\n6x8J9QkyxHUcYTqgfriTgeM7hRKL6NHg1VGaMEJE4zqBSKqrWqIweGNDkpBNyXrW\nN/SuMkM1AgMBAAECggEAAN9LhIKwF6+qWZ0yn+bjjBZsp+hm/J47Vv//HQ4oH+wt\nUynAIi3A+ZsbA/isCCQuFycLdCpNnQ1DiMjdQpZCExVhIxSsNBCk4IxI38qZzIWE\n/jfFo26al/PkTmlAdoEGkoW9k5Vrm2EC2jRXUc8kDCxcXvgb6OItcxnjGgNGKkLP\nrFWyGoBpFHxuGbd0wtno7ar/w/xxSAiOOChE48J55hn8QO0aHCdoWhMl9a/b38sQ\nhf7uBgZOM99rVNBo3Z0m4g5JcZ7yu4hutRCiSFKJTT02RKdugzYc3/r+83gp3NoL\nzR5dNel35sxv7/6Slx+x3BdS938wWkTg37Gr3xuPDwKBgQDWGFXxsMVlf4YCKhUM\nR0a2OhXAs5+ZoM7ChbapxDtQUHT1mt3Uxe46c3oBtW6+FU4EgKufS7NKpR65LV7N\n36YSUqNIzAPhoPvovonBrYR8WUlogCcgOJ5rZl+qtbPKOmj9/JJa4QJ5SkUbQGYf\nidm668e2FHkoPqmo6FbZMyWM6wKBgQDCXSe2GJUa4BaFbTQGUNtYmbcDe47H+XZf\nDRk9ro1xPE5v1oa288uZkgY/tao3IT9TPQOP3kSTGvq6QJl/ZdoVZUx6oqVSmn8i\nMqezYCsc2IHaM5Q5qtdafV2TlWKFpaSbGW5LKARSMcJC/mY9P3vywAcx+JU+qUef\n11gvZyroXwKBgQC6EBRBJBuphhZ0sxXvwdIWdIyLGJBP9405SPPivoO93O6ItLqt\nPAc6DTmvWnqP//v5tclxe1yqNq5oyKFn0kKGEgOONJ/66umC8HTQOXi2iPJfO2DF\ng+9J74Kc3aUOz4yHj4WyLXL07jL46BLYvfjXlinOeCSDcVIJVUKFKQotWQKBgQCY\nxpSCZAw/1cieFFqCZGgl2p2qlSKEOag7ypX+kAgJ6/dTnXLCuBtfmRJkXa1wLCgU\ni68TFQkeAGT4pfKB21Ny4e8drl748Qvhm6OKMZtxzxUyqLxoH8urC0PUz+VjW/Jp\nH7I8TTYoTYh/FGzU0+PfyeVd+CGH4ZO1JpXgnN1zTQKBgQCzViab2psVMNhudYn8\nO4e2T/WufmhSL8jxn9qJ7FzXa/Ki6aGVvIFTTzLsrKRMZaE93PxPHzd2iSx7HAi6\nSSKPV2bcK2ZLc3x4f4erkzFE91MD8mFp8opk2euUVqpZAdBnE0zm82cnEoQSboJi\nQQFxWHg5El4zA9fKxsbnVkwuBA==\n-----END PRIVATE KEY-----\n
