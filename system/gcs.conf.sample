@@ -6,6 +6,13 @@
 # OAuth 2.0 is supported.
 type = gcs_oauth_v2
 
+# Protocol
+# We recommend using the 'http' protocol for GCS when attaching disks to Google
+# virtual machine instances and using the 'https' protocol when attaching disks
+# to servers located outside of Google's cloud environment. The protocol is
+# optional and will default to using 'http' if not set.
+# protocol = http
+
 # Bucket
 # The storage remote's GCS bucket
 bucket = sample-bucket.mycompany.com

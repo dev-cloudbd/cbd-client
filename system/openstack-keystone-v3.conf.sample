@@ -10,16 +10,21 @@ type = swift_v3
 # The Keystone v3 identity service URL.
 auth_url = http://keystone:5000/v3
 
+# Endpoint Interface
+# Which Swift storage endpoint to use (public or internal). The endpoint
+# interface is optional and will default to using 'public' if not set.
+# endpoint_interface = public
+
 # Storage Location
 # Containers belong to a project and projects reside within a project domain.
-# The project domain is optional and will use 'default' if not set.
+# The project domain is optional and will use the 'default' domain if not set.
 # project_domain = default
 project = cloudbd
 container = sample-container
 
 # Credentials
 # The credentials for a user with swift operator access to the project. The
-# user domain is optional and will use 'default' if not set.
+# user domain is optional and will use the 'default' domain if not set.
 # user_domain = default
 user = cloudbd
 password = 12345

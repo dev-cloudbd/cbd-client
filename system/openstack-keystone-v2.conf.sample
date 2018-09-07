@@ -10,6 +10,11 @@ type = swift_v2
 # The Keystone v2 identity service URL.
 auth_url = http://keystone:5000/v2.0
 
+# Endpoint Interface
+# Which Swift storage endpoint URL to use (public or internal). The endpoint
+# interface is optional and will default to using 'public' if not set.
+# endpoint_interface = public
+
 # Storage Location
 # Containers belong to a tenant.
 tenant = cloudbd
