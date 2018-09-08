@@ -11,7 +11,7 @@ type = swift_v3
 auth_url = http://keystone:5000/v3
 
 # Endpoint Interface
-# Which Swift storage endpoint to use (public or internal). The endpoint
+# Which Swift storage endpoint to use ('public' or 'internal'). The endpoint
 # interface is optional and will default to using 'public' if not set.
 # endpoint_interface = public
 
