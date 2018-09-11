@@ -13,10 +13,6 @@ Requires:       cloudbd >= 2.1.1
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
 /usr/bin/getent passwd cloudbd > /dev/null || /usr/sbin/useradd -r -g cloudbd cloudbd
 
-%post
-/bin/chown root:cloudbd %{_sysconfdir}/cloudbd/remotes.d/ || /bin/true
-/bin/chmod 750 %{_sysconfdir}/cloudbd/remotes.d/ || /bin/true
-
 %description 
 Tools for the Linux Kernel's network block device, allowing you to use
 remote block devices over a TCP/IP network.
@@ -38,6 +34,7 @@ remote block devices over a TCP/IP network.
 %{_sbindir}/cbddisks_start
 %{_sbindir}/cbddisks_stop
 %config(noreplace) %{_sysconfdir}/cloudbd/cbdtab
+%dir %attr(0750, root, cloudbd) %{_sysconfdir}/cloudbd/remotes.d
 %{_sysconfdir}/cloudbd/remotes.d/aws.conf.sample
 %{_sysconfdir}/cloudbd/remotes.d/gcs.conf.sample
 %{_sysconfdir}/cloudbd/remotes.d/openstack-keystone-v3.conf.sample
