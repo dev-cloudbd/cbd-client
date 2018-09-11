@@ -13,6 +13,10 @@ Requires:       cloudbd >= 2.1.1
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
 /usr/bin/getent passwd cloudbd > /dev/null || /usr/sbin/useradd -r -g cloudbd cloudbd
 
+%post
+/bin/chown root:cloudbd %{_sysconfdir}/cloudbd/remotes.d/ || /bin/true
+/bin/chmod 750 %{_sysconfdir}/cloudbd/remotes.d/ || /bin/true
+
 %description 
 Tools for the Linux Kernel's network block device, allowing you to use
 remote block devices over a TCP/IP network.
