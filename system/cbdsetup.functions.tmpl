@@ -386,7 +386,9 @@ handle_stop () {
         lsblk -l --noheadings -o KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read kname type; do
             mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
             if [ ! -z "\$mnt" ]; then
-                [ "\$IS_SYSTEMD" = "yes" ] && systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 ||
+                [ "\$IS_SYSTEMD" = "yes" ] && 
+                        systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
+                        ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null ||
                         umount -f "\$mnt" >/dev/null 2>&1 || break
             fi
 
