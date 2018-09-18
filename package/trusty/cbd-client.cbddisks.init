@@ -53,12 +53,16 @@ case "$1" in
         rm $LOCKFILE
         ;;
     restart|reload|force-reload)
+        FORCE_STOP="yes"
         do_stop
         if rm $LOCKFILE 2>/dev/null; then
             echo "sleeping 5 seconds"
             sleep 5
         fi
-        cbddisks.sh start
+        touch $LOCKFILE
+        FORCE_START="yes"
+        ulimit -l unlimited
+        do_start
         ;;
     force-start)
         touch $LOCKFILE
