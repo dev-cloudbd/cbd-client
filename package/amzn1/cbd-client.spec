@@ -16,7 +16,6 @@ Requires:       cloudbd >= 2.1.1
 %post
 if [ $1 -eq 1 ]; then
   chkconfig --add cbddisks
-  chkconfig cbddisks on
 fi
 
 %description 
