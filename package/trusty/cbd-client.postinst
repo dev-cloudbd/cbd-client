@@ -3,6 +3,8 @@
 case "$1" in
     configure)
         adduser --quiet --system --group --no-create-home cloudbd
+        chown root:cloudbd /etc/cloudbd/remotes.d/
+        chmod 750 /etc/cloudbd/remotes.d/
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
         # We need not do anything.
