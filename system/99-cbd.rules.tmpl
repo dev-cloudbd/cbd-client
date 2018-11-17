@@ -10,7 +10,6 @@ TEST!="pid", ENV{SYSTEMD_READY}="0", GOTO="cloudbd_end"
 TEST=="$runstatedir/cloudbd/%k.stopping", GOTO="cloudbd_end"
 
 IMPORT{file}="$runstatedir/cloudbd/\$name.udev"
-ENV{CBD_DEVICE}=="?*", RUN{program}+="cbd_dmsetup \$name %E{CBD_REMOTE}:%E{CBD_DEVICE} %E{CBD_UUID} %E{CBD_SIZE} %E{CBD_BLOCKSIZE}"
+ENV{CBD_DEVICE}=="?*", ATTR{queue/max_sectors_kb}="1024", ATTR{queue/nr_requests}="128", RUN{program}+="cbd_dmsetup \$name %E{CBD_REMOTE}:%E{CBD_DEVICE} %E{CBD_UUID} %E{CBD_SIZE} %E{CBD_BLOCKSIZE} %E{CBD_READAHEAD}"
 
 LABEL="cloudbd_end"
-

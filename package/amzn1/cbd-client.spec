@@ -7,7 +7,7 @@ URL:            https://www.github.com/dev-cloudbd/cbd-client
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  glib2-devel
 Requires(pre): /usr/sbin/useradd, /usr/bin/getent, /usr/sbin/groupadd
-Requires:       cloudbd >= 2.1.1
+Requires:       cloudbd >= 2.1.1, cbdkit >= 1.4.1
 
 %pre
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
@@ -52,6 +52,9 @@ remote block devices over a TCP/IP network.
 %{_libdir}/cbdsetup/cbdsetup.functions
 
 %changelog
+* Fri Nov 16 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.5
+- Production release
+
 * Mon Aug 27 2018 Shaun McDowell <smcdowell@cloudbd.io> - 3.15.3-1
 - Production release
 

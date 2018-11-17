@@ -33,7 +33,7 @@ fi
 [ -x $bindir/cloudbd ] || exit 0
 
 # Parse and validate cbd value from socket path
-# input:   \$1 cbd socket file path 
+# input:   \$1 cbd socket file path
 # output:  \$CBD regex checked remote:disk string
 #          \$ERRMSG set to reason for failure if returning an error
 # return:  0 on success
@@ -97,6 +97,8 @@ parse_opts () {
     local opts="\$1" opt param value
     local IFS
 
+    CBDKIT_BUFFERS="64"
+    DM_READAHEAD_KB="65536"
     CBDKIT_PARAMS=""
     ERRMSG=""
 
@@ -107,6 +109,20 @@ parse_opts () {
         value=\$(echo "\$opt" | sed '/=/!d;s/^.*=//')
 
         case "\$param" in
+        lowmem)
+            CBDKIT_BUFFERS=32
+            DM_READAHEAD_KB=16384
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 connections=20 cache_buffers=8 threads=1"
+            ;;
+        defaults)
+            CBDKIT_BUFFERS=64
+            DM_READAHEAD_KB=65536
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=48 connections=60 cache_buffers=16 threads=2"
+        highperf|highmem)
+            CBDKIT_BUFFERS=128
+            DM_READAHEAD_KB=262144
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=96 connections=120 cache_buffers=24 threads=4"
+            ;;
         connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
@@ -137,6 +153,18 @@ parse_opts () {
             esac
             CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
             ;;
+        readahead)
+            if [ -z "\$value" ]; then
+                ERRMSG="no value for option \$param"
+                return 1
+            elif ! expr "x\$value" : 'x[[:digit:]]\+\$' > /dev/null; then
+                ERRMSG="bad value for option \$param"
+                return 1
+            elif [ "\$value" -le 0 ]; then
+                ERRMSG="option \$param must be greater than 0"
+                return 1
+            fi
+            DM_READAHEAD_KB="\$((\$value * 1024))"
         noauto)
             IGNORE="yes"
             ;;
@@ -232,14 +260,14 @@ handle_start () {
         rm -f "\$SOCKET" "\$PIDFILE" "\$UDEV" "\$STOPPING"
 
         # Generate udev parameters
-        if ! /bin/cloudbd info -e "\$CBD" > "\$UDEV"; then
+        if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$DM_READAHEAD_KB; } 2>/dev/null > "\$UDEV"; then
             ERRMSG="unable to contact remote disk"
             return 1
         fi
 
         # Start the server
         local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -f \$CBD /dev/\$NBD"
-        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET cloudbd device=\$CBD \$CBDKIT_PARAMS"
+        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
         if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
             ERRMSG="cbdkit returned with error"
             return 1
@@ -261,7 +289,7 @@ handle_start () {
         # Return success if device mapper picks up \$CBD
         [ -e /dev/mapper/"\$CBD" ] && return 0
 
-        # Check that server is still running        
+        # Check that server is still running
         if ! ps "\$PID" >/dev/null 2>&1; then
             ERRMSG="server exited unexpectedly"
             return 1
@@ -386,7 +414,7 @@ handle_stop () {
         lsblk -l --noheadings -o KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read kname type; do
             mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
             if [ ! -z "\$mnt" ]; then
-                [ "\$IS_SYSTEMD" = "yes" ] && 
+                [ "\$IS_SYSTEMD" = "yes" ] &&
                         systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
                         ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null ||
                         umount -f "\$mnt" >/dev/null 2>&1 || break
@@ -695,4 +723,3 @@ log_warning_msg () {
         echo " * \$@" || true
     fi
 }
-
