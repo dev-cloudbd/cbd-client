@@ -118,6 +118,7 @@ parse_opts () {
             CBDKIT_BUFFERS=64
             DM_READAHEAD_KB=65536
             CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=48 connections=60 cache_buffers=16 threads=2"
+            ;;
         highperf|highmem)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=262144
@@ -165,6 +166,7 @@ parse_opts () {
                 return 1
             fi
             DM_READAHEAD_KB="\$((\$value * 1024))"
+            ;;
         noauto)
             IGNORE="yes"
             ;;
