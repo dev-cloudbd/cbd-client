@@ -165,7 +165,7 @@ parse_opts () {
                 ERRMSG="option \$param must be greater than 0"
                 return 1
             fi
-            DM_READAHEAD_KB="\$((\$value * 1024))"
+            DM_READAHEAD_KB="\$((value * 1024))"
             ;;
         noauto)
             IGNORE="yes"
@@ -262,7 +262,7 @@ handle_start () {
         rm -f "\$SOCKET" "\$PIDFILE" "\$UDEV" "\$STOPPING"
 
         # Generate udev parameters
-        if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$DM_READAHEAD_KB; } 2>/dev/null > "\$UDEV"; then
+        if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$((DM_READAHEAD_KB * 2)); } 2>/dev/null > "\$UDEV"; then
             ERRMSG="unable to contact remote disk"
             return 1
         fi
