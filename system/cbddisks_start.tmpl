@@ -6,9 +6,9 @@ usage () {
     cat <<-EOF
 	Usage: cbddisks_start CBD [CBD]...       start one or more cbdtab disks (implies -f)
 	       cbddisks_start -a [-f]            start all cbdtab disks
-	
+
 	       CBD := remote:disk                a disk configured in the cbdtab file
-	
+
 	Start CloudBD disks configured in \$TABFILE
 	-a, --all                     start all configured disks
 	-f, --force                   do not skip noauto disks
@@ -53,9 +53,9 @@ main () {
         exit 1
     fi
 
+    ulimit -l unlimited
     do_start \$cbds
     exit \$?
 }
 
 main "\$@"
-

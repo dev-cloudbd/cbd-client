@@ -10,20 +10,17 @@ manpage.1: manpage.sgml
   -->
 
   <!-- Fill in your name for FIRSTNAME and SURNAME. -->
-  <!ENTITY dhfirstname "<firstname>Wouter</firstname>">
-  <!ENTITY dhsurname   "<surname>Verhelst</surname>">
+  <!ENTITY dhfirstname "<firstname>Shaun</firstname>">
+  <!ENTITY dhsurname   "<surname>McDowell</surname>">
   <!-- Please adjust the date whenever revising the manpage. -->
-  <!ENTITY dhdate      "<date>$Date: 2006-10-18 15:01:57 +0200 (wo, 18 okt 2006) $</date>">
+  <!ENTITY dhdate      "<date>$Date: 2018-11-17 15:00:00 -0500 $</date>">
   <!-- SECTION should be 1-8, maybe w/ subsection other parameters are
        allowed: see man(7), man(1). -->
   <!ENTITY dhsection   "<manvolnum>5</manvolnum>">
-  <!ENTITY dhemail     "<email>wouter@debian.org</email>">
-  <!ENTITY dhusername  "Wouter Verhelst">
+  <!ENTITY dhemail     "<email>smcdowell@cloudbd.io</email>">
+  <!ENTITY dhusername  "Shaun McDowell">
   <!ENTITY dhucpackage "<refentrytitle>CBDTAB</refentrytitle>">
-  <!ENTITY dhpackage   "$sysconfdir/nbdtab">
-
-  <!ENTITY debian      "<productname>Debian GNU/Linux</productname>">
-  <!ENTITY gnu         "<acronym>GNU</acronym>">
+  <!ENTITY dhpackage   "$sysconfdir/cloudbd/cbdtab">
 ]>
 
 <refentry>
@@ -36,8 +33,8 @@ manpage.1: manpage.sgml
       &dhsurname;
     </author>
     <copyright>
-      <year>2015</year>
-      <holder>&dhusername;</holder>
+      <year>2018</year>
+      <holder>CloudBD, LLC</holder>
     </copyright>
     &dhdate;
   </refentryinfo>
@@ -49,7 +46,7 @@ manpage.1: manpage.sgml
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>configuration file for nbd-client</refpurpose>
+    <refpurpose>configuration file for CloudBD disks</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -60,15 +57,9 @@ manpage.1: manpage.sgml
   <refsect1>
     <title>DESCRIPTION</title>
 
-    <para>This file allows to configure predefined connections for
-      nbd-client. It may contain multiple definitions, one per line,
-      each of which contains four space-separated fields.</para>
-
-    <para>To connect a device specified in the nbdtab file,
-      run <command>nbd-client</command>(8) with the short name of that
-      device as the sole argument. It will then look up the required
-      information in <filename>nbdtab</filename>, and make the
-      connection.</para>
+    <para>This file configures which CloudBD disks attach to this
+      server. It may contain multiple definitions, one per line,
+      each of which contains three space separate fields.</para>
 
     <para>Fields are separated from one another by any number of space
       or tab characters; records are separated from one another by
@@ -77,132 +68,174 @@ manpage.1: manpage.sgml
       end of the line or the end of the file, whichever is first.</para>
     <refsect2>
       <title>Fields</title>
-      <para>The file contains the following fields:</para>
+      <para>Each record contains the following fields: &lt;nbd&gt;,
+        &lt;remote&gt;:&lt;disk&gt;, and [driver settings]</para>
       <orderedlist>
-	<listitem>
-	  <para>The short name of the device file. That is, it should
-	  contain the name of the device without the leading
-	  <filename>/dev/</filename> part; e.g., it could say
-	  <filename>nbd0</filename>.</para>
-	</listitem>
-	<listitem>
-	  <para>The hostname (in case of a TCP socket) or filename (in
-	  case of a unix domain socket) on which the server is
-	  listening.</para>
-	</listitem>
-	<listitem>
-	  <para>The name of the export as exported by
-	  <command>nbd-server</command>.</para>
-	</listitem>
-	<listitem>
-	  <para>Any extra options. This field is optional (no pun
-	  intended), and need not appear in a file if no options are
-	  necessary. The options recognized by
-	  <command>nbd-client</command>(8) are specified below, in the
-	  section "Options". Any unknown options in
-	  this field will produce a warning by
-	  <command>nbd-client</command>, unless they are prepended by
-	  an underscore ('_') character; the underscore is
-	  specifically reserved for local use, or for distribution
-	  customization.</para>
-	</listitem>
+        <listitem>
+          <para>&lt;nbd&gt;  The short name of an available nbd device.</para>
+          <para>The default nbd kernel module settings will create 16 nbd
+            devices at <filename>/dev/nbd[0-15]</filename>. This field should
+            contain the short name of an unused nbd device without the leading
+            <filename>/dev/</filename> part; e.g., it could say
+            <filename>nbd0</filename>.</para>
+        </listitem>
+        <listitem>
+          <para>&lt;remote&gt;:&lt;disk&gt;  The remote and disk names.</para>
+          <para>The remote name is the filename of your storage remote config file
+            in the remotes.d directory without the '.conf' extension; e.g.,
+            <filename>/etc/cloudbd/remotes.d/&lt;remote&gt;.conf</filename>.
+            For a list of configured remotes run <command>cloudbd
+            ls</run>.</para>
+          <para>The disk name is the name of a CloudBD disk stored on
+            &lt;remote&gt;. For a list of disks on the remote run
+            <command>cloudbd ls &lt;remote&gt;</command>.</para>
+        </listitem>
+        <listitem>
+          <para>[driver settings]  The driver settings.</para>
+          <para>This field is optional and need not appear in a file if no
+            driver tuning is necessary. The settings recognized are
+            specified below in the section "Driver Settings".</para>
+        </listitem>
       </orderedlist>
     </refsect2>
     <refsect2>
-      <title>Options</title>
-      <para>Every command-line <command>nbd-client</command> option
-	which allows to configure specific options for a particular
-	device node has a corresponding option in the
-	<filename>nbdtab</filename> file, and vice versa; where this
-	isn't the case, that is a bug.</para>
+      <title>Driver Settings</title>
+
       <para>Individual options in this field should be separated from
-        one another by the comma character.</para>
+        one another by the comma character without spaces.
+        Settings that require a value are specified using
+        &lt;key&gt;=&lt;value&gt; notation.</para>
+
+      <para>The Profile options (e.g., defaults, lowmem, and highperf) will
+        set a group of options that work well together for good performance
+        vs driver memory usage. The group settings were chosen by
+        performance testing on various AWS EC2 instances using S3 with
+        ops that had between 75ms and 125ms latency. For your specific
+        deployment, further tuning may be required.</para>
+
+      <para>Options that come latter take precedence and override earlier
+        settings; e.g., if you using driver settings "lowmem,block_buffers=32",
+        the driver will use the lowmem settings except block_buffers will be
+        set to 32.</para>
+
       <variablelist>
-	<varlistentry>
-	  <term><option>bs=<replaceable>block size</replaceable></option></term>
-	  <listitem>
-	    <para>The block size for this export. If this option is
-	    not used, the kernel's default will be used
-	    instead.</para>
-	    <para>Corresponds to the <option>-b</option> option on the
-	    command line.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>conns=<replaceable>number</replaceable></option></term>
-	  <listitem>
-	    <para>The number of connections to use for this device.
-	    Corresponds to the <option>-C</option> option on the command
-	    line; see nbd-client(8) for more details on that
-	    option.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>port=<replaceable>port number</replaceable></option></term>
-	  <listitem>
-	    <para>The port on which to communicate with the
-	    <command>nbd-server</command>. Defaults to the
-	    IANA-assigned port for NBD, 10809.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>timeout=<replaceable>timeout</replaceable></option></term>
-	  <listitem>
-	    <para>The timeout. If this option is not specified, no
-	    timeout is configured.</para>
-	    <para>Corresponds to the <option>-t</option> option on the
-	    command line.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>persist</option></term>
-	  <listitem>
-	    <para>Persist the connection, using the semantics of the
-	    <option>-p</option> command-line option.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>swap</option></term>
-	  <listitem>
-	    <para>Optimize for swap; <option>-s</option>.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>sdp</option></term>
-	  <listitem>
-	    <para>Use the Socket Direct protocol; <option>-S</option>.</para>
-	  </listitem>
-	</varlistentry>
-	<varlistentry>
-	  <term><option>unix</option></term>
-	  <listitem>
-	    <para>Use a Unix Domain socket to connect to the server;
-	    <option>-u</option>.</para>
-	  </listitem>
-	</varlistentry>
+        <varlistentry>
+          <term><option>defaults</option></term>
+          <listitem>
+            <para>The default settings profile. Recommended for servers with
+            up to 10 gigabit networking and at least 4 GB of memory.</para>
+            <para>block_buffers=48,cache_buffers=16,threads=2,readahead=64,requests=64</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>lowmem</option></term>
+          <listitem>
+            <para>Settings profile for reduced memory and network usage.
+              Recommended for servers with low memory or limited network
+              capabilities.</para>
+            <para>block_buffers=16,cache_buffers=8,threads=1,readahead=16,requests=32</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>highperf</option></term>
+          <listitem>
+            <para>Settings profile for high performance. Recommended for servers
+              with up to 25 Gigabit networking and at least 8GB of memory. The
+              driver will use additional memory and network connections for
+              very high performance (up to 2.2GiB/s).</para>
+            <para>block_buffers=128,cache_buffers=24,threads=4,readahead=256,requests=128</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>block_buffers=<replaceable>number</replaceable></option></term>
+          <listitem>
+            <para>The number of block buffers to use for this disk. The disk
+              is split into many atomic block sized chunks and this setting
+              controls how many blocks the driver can have in memory for reads
+              and writes at once. Defaults to 48.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>cache_buffers=<replaceable>number</replaceable></option></term>
+          <listitem>
+            <para>The number of cached partial write buffers to use. When
+              partial block writes occur there is a high probability of another
+              read or write operation soon after to the same block. This
+              setting controls the number of recent partial write block_buffers
+              to keep in memory to accelerate future write ops from becoming
+              read-modify-write ops. Defaults to 16.</para>
+          </listitem>
+        </varlistentry>
       </variablelist>
+    </refsect2>
+    <refsect2>
+      <title>Upstart/SysVinit</title>
+
+      <para>On systems using Upstart or SysVinit, CloudBD disks specified in
+        <filename>cbdtab</filename> are automatically started at boot by the
+        cbddisks service.</para>
+
+      <para>To start all CloudBD disks specified in
+        <filename>cbdtab</filename>, run
+        <command>service cbddisks start</command>.</para>
+
+      <para>To stop all running CloudBD disks, run
+        <command>service cbddisks stop</command>.</para>
+
+      <para>To start and stop individual CloudBD disks, see Manual
+        Starting and Stopping below.</para>
+    </refsect2>
+    <refsect2>
+      <title>Systemd</title>
+
+      <para>On systems using Systemd, CloudBD disks specified in
+        <filename>cbdtab</filename> are automatically started at boot by
+        generated service files for each disk and the
+        <filename>cbdsetup.target</filename>.</para>
+
+      <para>When editing the <filename>cbdtab</filename> file, you must run
+        <command>systemctl daemon-reload</command> afterwards to update the
+        generated systemd service files for your disks.</para>
+
+      <para>To start all CloudBD disks specified in
+        <filename>cbdtab</filename>, run <command>systemctl start
+        cbdsetup.target</command> or <command>systemctl start
+        cbdsetup@*.service</command>.</para>
+
+      <para>To stop all running CloudBD disks, run
+        <command>systemctl stop cbdsetup@*.service</command>.</para>
+
+      <para>To start an individual CloudBD disk specified in
+        <filename>cbdtab</filename>, run <command>systemctl start
+        cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command>.</para>
+
+      <para>To stop an individual running CloudBD disk, run <command>systemctl
+        stop cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command>.</para>
+    </refsect2>
+    <refsect2>
+      <title>Manual Starting and Stopping</title>
+
+      <para>To manually start a CloudBD disk specified in the cbdtab file, run
+        <command>cbddisks_start</command> with the &lt;remote&gt;:&lt;disk&gt;
+        as the sole argument. It will then look up the required information in
+        <filename>cbdtab</filename>, and attach the disk at
+        <filename>/dev/mapper/&lt;remote&gt;:&lt;disk&gt;</filename>.</para>
+
+      <para>To manually stop a running CloudBD disk, run
+        <command>cbddisks_stop</command> with the &lt;remote&gt;:&lt;disk&gt;
+        as the sole argument. If the disk is busy or in use, use the -f option
+        to force the disk to stop.</para>
     </refsect2>
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
 
-    <para>nbd-server (1), nbd-client (8), nbd-trdump (8)</para>
-      
+    <para>The CloudBD documentation pages at
+      https://www.cloudbd.io/docs.</para>
 
   </refsect1>
   <refsect1>
     <title>AUTHOR</title>
-    <para>The NBD kernel module and the NBD tools were originally
-      written by Pavel Machek (pavel@ucw.cz)</para>
-
-    <para>The Linux kernel module is now maintained by Paul Clements
-      (Paul.Clements@steeleye.com), while the userland tools are
-      maintained by &dhusername; (&dhemail;)</para>
-
-    <para>On The Hurd there is a regular translator available to perform the
-      client side of the protocol, and the use of
-      <command>nbd-client</command> is not required. Please see the
-      relevant documentation for more information.</para>
 
     <para>This manual page was written by &dhusername; (&dhemail;).
       Permission is granted to copy, distribute and/or modify this
@@ -213,14 +246,14 @@ manpage.1: manpage.sgml
   </refsect1>
   <refsect1>
     <title>EXAMPLES</title>
-    <para>A simple <filename>nbdtab</filename> file could look like
+    <para>A simple <filename>cbdtab</filename> file could look like
     this:</para>
     <programlisting>
-# swap space, called "swapexport" on the server
-# optimize for swap, and try to reconnect upon disconnect.
-nbd0 nbdserver.example.com swapexport swap,persist
-# other export, called "data" on the server. No options for this one.
-nbd1 nbdserver.example.com data
-</programlisting>
+# &lt;nbd&gt;     &lt;remote&gt;:&lt;disk&gt;             [driver settings]
+nbd0        my_remote_1:example_disk1   # no options set, will use defaults
+nbd1        my_remote_1:example_disk2   lowmem   # reduced settings
+nbd2        my_remote_2:example_disk3   highperf # high performance settings
+nbd3        my_remote_2:example_disk4   defaults,block_buffers=32,readahead=16
+    </programlisting>
   </refsect1>
 </refentry>

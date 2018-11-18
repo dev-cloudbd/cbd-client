@@ -1,35 +1,6 @@
-# This file configures which CloudBD disks attach to this server. Once attached,
-# disks can be found as a block device at: '/dev/mapper/<remote>:<disk>'.
-
-# <nbd#>    <remote>:<disk>         [driver settings]
-
-# Required Parameters
-#   <nbd#>      Available nbd block device
-#       CloudBD disks use the nbd kernel module to connect to your server. Each
-#       CloudBD disk requires an available nbd device. The default nbd kernel
-#       module settings will create 16 nbd devices named nbd[0-15] available at /dev/nbd<N>.
-#
-#   <remote>    Name of the storage remote
-#       The storage remote name is the name of your config file at:
-#       'etc/cloudbd/remotes.d/<remote>.conf'.
-#
-#   <disk>      Name of the CloudBD disk stored on <remote>
-
-# Optional Driver Settings
-#   defaults    Default settings recommended for servers with up to 10 gigabit networking.
-#               Sets connections=60,block_buffers=48,cache_buffers=16,threads=2,readahead=64,requests=64
-#   lowmem      Reduced settings for low memory instances
-#               Recommended for instances with up server with up to 1 gigabit networking or < 2GB memory
-#               Sets connections=20,block_buffers=16,cache_buffers=8,threads=1,readahead=16,requests=32
-#   highperf    Increased driver settings for up to 20 gigabit networking
-#               Sets connections=160,block_buffers=128,cache_buffers=24,threads=4,readahead=256,requests=128
-
+# This file configures which CloudBD disks attach to this server.
 # For more information on attaching disks or the driver settings, see the
-# documentation at https://www.cloudbd.io/docs.
+# man page for cbdtab (5) or the documentation at https://www.cloudbd.io/docs.
 
-# Example Disk Configuration
-# <nbd#>    <remote>:<disk>             [driver settings]
-# nbd0      my_remote_1:example_disk1   # no options set, will use defaults
-# nbd1      my_remote_1:example_disk2   lowmem   # reduced settings
-# nbd2      my_remote_2:example_disk3   highperf # high performance settings
-# nbd3      my_remote_2:example_disk4   highperf,threads=8 # high performance and override threads
+# Disks attach as block devices at: '/dev/mapper/<remote>:<disk>'
+# <nbd>     <remote>:<disk>             [driver settings]
