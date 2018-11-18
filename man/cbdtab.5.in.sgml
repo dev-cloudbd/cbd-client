@@ -131,8 +131,8 @@ manpage.1: manpage.sgml
           <term><option>lowmem</option></term>
           <listitem>
             <para>Settings profile for reduced memory and network usage.
-              Recommended for servers with low memory or limited network
-              capabilities.</para>
+              Recommended for servers with less than 4GB of memory or
+              that have 1 Gigabit or slower networking.</para>
             <para>block_buffers=16,cache_buffers=8,threads=1,readahead=16,requests=32</para>
           </listitem>
         </varlistentry>
