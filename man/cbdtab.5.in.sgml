@@ -58,17 +58,18 @@ manpage.1: manpage.sgml
     <title>DESCRIPTION</title>
 
     <para>This file configures which CloudBD disks attach to this
-      server. It may contain multiple definitions, one per line,
+      server. It may contain multiple disk definitions, one per line,
       each of which contains three space separate fields.</para>
 
     <para>Fields are separated from one another by any number of space
-      or tab characters; records are separated from one another by
+      or tab characters; disk definitions are separated from one another by
       newline characters. The file may also contain any number of
       comments, which start with a '#' character and continue until the
       end of the line or the end of the file, whichever is first.</para>
+
     <refsect2>
       <title>Fields</title>
-      <para>Each record contains the following fields: &lt;nbd&gt;,
+      <para>Each disk definition contains the following fields: &lt;nbd&gt;,
         &lt;remote&gt;:&lt;disk&gt;, and [driver settings]</para>
       <orderedlist>
         <listitem>
@@ -100,80 +101,38 @@ manpage.1: manpage.sgml
     </refsect2>
     <refsect2>
       <title>Driver Settings</title>
-
-      <para>Individual options in this field should be separated from
-        one another by the comma character without spaces.
-        Settings that require a value are specified using
-        &lt;key&gt;=&lt;value&gt; notation.</para>
-
-      <para>The Profile options (e.g., defaults, lowmem, and highperf) will
-        set a group of options that work well together for good performance
-        vs driver memory usage. The group settings were chosen by
-        performance testing on various AWS EC2 instances using S3 with
-        ops that had between 75ms and 125ms latency. For your specific
-        deployment, further tuning may be required.</para>
-
-      <para>Options that come latter take precedence and override earlier
-        settings; e.g., if you using driver settings "lowmem,block_buffers=32",
-        the driver will use the lowmem settings except block_buffers will be
-        set to 32.</para>
-
       <variablelist>
         <varlistentry>
           <term><option>defaults</option></term>
           <listitem>
-            <para>The default settings profile. Recommended for servers with
+            <para>The default settings. Recommended for servers with
             up to 10 gigabit networking and at least 4 GB of memory.</para>
-            <para>block_buffers=48,cache_buffers=16,threads=2,readahead=64,requests=64</para>
           </listitem>
         </varlistentry>
         <varlistentry>
           <term><option>lowmem</option></term>
           <listitem>
-            <para>Settings profile for reduced memory and network usage.
-              Recommended for servers with less than 4GB of memory or
-              that have 1 Gigabit or slower networking.</para>
-            <para>block_buffers=16,cache_buffers=8,threads=1,readahead=16,requests=32</para>
+            <para>Reduced memory and network usage. Recommended for servers
+              with up to 5 Gigabit networking and at least 2GB of
+              memory.</para>
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>highperf</option></term>
+          <term><option>highperf|highmem</option></term>
           <listitem>
-            <para>Settings profile for high performance. Recommended for servers
-              with up to 25 Gigabit networking and at least 8GB of memory. The
-              driver will use additional memory and network connections for
-              very high performance (up to 2.2GiB/s).</para>
-            <para>block_buffers=128,cache_buffers=24,threads=4,readahead=256,requests=128</para>
+            <para>Increased buffers and connections for high performance
+              (2GiB/s+). Recommended for servers with up to 25 Gigabit
+              networking and at least 8GB of memory.</para>
           </listitem>
         </varlistentry>
-        <varlistentry>
-          <term><option>block_buffers=<replaceable>number</replaceable></option></term>
-          <listitem>
-            <para>The number of block buffers to use for this disk. The disk
-              is split into many atomic block sized chunks and this setting
-              controls how many blocks the driver can have in memory for reads
-              and writes at once. Defaults to 48.</para>
-          </listitem>
-        </varlistentry>
-        <varlistentry>
-          <term><option>cache_buffers=<replaceable>number</replaceable></option></term>
-          <listitem>
-            <para>The number of cached partial write buffers to use. When
-              partial block writes occur there is a high probability of another
-              read or write operation soon after to the same block. This
-              setting controls the number of recent partial write block_buffers
-              to keep in memory to accelerate future write ops from becoming
-              read-modify-write ops. Defaults to 16.</para>
-          </listitem>
-        </varlistentry>
-      </variablelist>
     </refsect2>
     <refsect2>
       <title>Upstart/SysVinit</title>
 
       <para>On systems using Upstart or SysVinit, CloudBD disks specified in
-        <filename>cbdtab</filename> are automatically started at boot by the
-        cbddisks service.</para>
+        <filename>cbdtab</filename> are automatically started at boot time by the
+        cbddisks service. Started disks are available as a block device at
+        <filename>/dev/mapper/&lt;remote&gt;:&lt;disk&gt;</filename>.</para>
 
       <para>To start all CloudBD disks specified in
         <filename>cbdtab</filename>, run
@@ -182,8 +141,14 @@ manpage.1: manpage.sgml
       <para>To stop all running CloudBD disks, run
         <command>service cbddisks stop</command>.</para>
 
-      <para>To start and stop individual CloudBD disks, see Manual
-        Starting and Stopping below.</para>
+      <para>To start a specific CloudBD disk from the cbdtab file, run
+        <command>cbddisks_start</command> with the &lt;remote&gt;:&lt;disk&gt;
+        as the sole argument.</para>
+
+      <para>To stop a running CloudBD disk, run
+        <command>cbddisks_stop</command> with the &lt;remote&gt;:&lt;disk&gt;
+        as the sole argument. If the disk is busy or in use, use the -f option
+        to force the disk to stop.</para>
     </refsect2>
     <refsect2>
       <title>Systemd</title>
@@ -191,7 +156,9 @@ manpage.1: manpage.sgml
       <para>On systems using Systemd, CloudBD disks specified in
         <filename>cbdtab</filename> are automatically started at boot by
         generated service files for each disk and the
-        <filename>cbdsetup.target</filename>.</para>
+        <filename>cbdsetup.target</filename>. Started disks are available as
+        a block device at
+        <filename>/dev/mapper/&lt;remote&gt;:&lt;disk&gt;</filename>.</para>
 
       <para>When editing the <filename>cbdtab</filename> file, you must run
         <command>systemctl daemon-reload</command> afterwards to update the
@@ -211,20 +178,6 @@ manpage.1: manpage.sgml
 
       <para>To stop an individual running CloudBD disk, run <command>systemctl
         stop cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command>.</para>
-    </refsect2>
-    <refsect2>
-      <title>Manual Starting and Stopping</title>
-
-      <para>To manually start a CloudBD disk specified in the cbdtab file, run
-        <command>cbddisks_start</command> with the &lt;remote&gt;:&lt;disk&gt;
-        as the sole argument. It will then look up the required information in
-        <filename>cbdtab</filename>, and attach the disk at
-        <filename>/dev/mapper/&lt;remote&gt;:&lt;disk&gt;</filename>.</para>
-
-      <para>To manually stop a running CloudBD disk, run
-        <command>cbddisks_stop</command> with the &lt;remote&gt;:&lt;disk&gt;
-        as the sole argument. If the disk is busy or in use, use the -f option
-        to force the disk to stop.</para>
     </refsect2>
   </refsect1>
   <refsect1>
@@ -253,7 +206,7 @@ manpage.1: manpage.sgml
 nbd0        my_remote_1:example_disk1   # no options set, will use defaults
 nbd1        my_remote_1:example_disk2   lowmem   # reduced settings
 nbd2        my_remote_2:example_disk3   highperf # high performance settings
-nbd3        my_remote_2:example_disk4   defaults,block_buffers=32,readahead=16
+nbd3        my_remote_2:example_disk4   defaults # use default settings
     </programlisting>
   </refsect1>
 </refentry>

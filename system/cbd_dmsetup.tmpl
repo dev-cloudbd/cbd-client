@@ -29,7 +29,7 @@ DM_SIZE=\$(( (\$SIZE - \$BS) / 512 ))
 DM_OFFSET=\$(( \$BS / 512 ))
 
 if [ ! -b "/dev/mapper/\$CBD" ]; then
-    /sbin/dmsetup create "\$CBD" -u "cbd-\$NBD-\$UUID" --readahead "\$READAHEAD" --table "0 \$DM_SIZE striped 1 \$DM_OFFSET /dev/\$NBD \$DM_OFFSET" || exit \$?
+    /sbin/dmsetup create "\$CBD" -u "cbd-\$NBD-\$UUID" --readahead "\$READAHEAD" --table "0 \$DM_SIZE linear /dev/\$NBD \$DM_OFFSET" || exit \$?
     /sbin/dmsetup mknodes "\$CBD"
 fi
 

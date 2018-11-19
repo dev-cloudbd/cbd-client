@@ -12,3 +12,4 @@ Type=forking
 ExecStart=@sbindir@/cbddisks_start %i
 ExecStop=@sbindir@/cbddisks_stop -f %i
 LimitMEMLOCK=infinity
+PIDFile=@runstatedir@/cloudbd/%i.pid
