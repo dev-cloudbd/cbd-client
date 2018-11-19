@@ -199,14 +199,18 @@ manpage.1: manpage.sgml
   </refsect1>
   <refsect1>
     <title>EXAMPLES</title>
-    <para>A simple <filename>cbdtab</filename> file could look like
-    this:</para>
+    <para>If your server has two remotes configured in
+      <filename>/etc/cloudbd/remotes.d/</filename> named "remote1.conf" and
+      "remote2.conf", and each remote has two disks named "disk1" and "disk2",
+      then a sample cbdtab file that attaches all four disks to this server
+      could look like this:</para>
+
     <programlisting>
-# &lt;nbd&gt;     &lt;remote&gt;:&lt;disk&gt;             [driver settings]
-nbd0        my_remote_1:example_disk1   # no options set, will use defaults
-nbd1        my_remote_1:example_disk2   lowmem   # reduced settings
-nbd2        my_remote_2:example_disk3   highperf # high performance settings
-nbd3        my_remote_2:example_disk4   defaults # use default settings
+#&lt;nbd&gt;      &lt;remote&gt;:&lt;disk&gt;     [driver settings]
+nbd0        remote1:disk1       # no options set, will use defaults
+nbd1        remote1:disk2       lowmem   # reduced settings
+nbd2        remote2:disk1       highperf # high performance settings
+nbd3        remote2:disk2       defaults # use default settings
     </programlisting>
   </refsect1>
 </refentry>

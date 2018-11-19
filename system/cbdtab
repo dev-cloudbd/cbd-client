@@ -3,4 +3,4 @@
 # man page for cbdtab (5) or the documentation at https://www.cloudbd.io/docs.
 
 # Disks attach as block devices at: '/dev/mapper/<remote>:<disk>'
-# <nbd>     <remote>:<disk>             [driver settings]
+# <nbd>         <remote>:<disk>                 [driver settings]
