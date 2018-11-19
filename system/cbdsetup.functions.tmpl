@@ -111,7 +111,7 @@ parse_opts () {
         case "\$param" in
         lowmem)
             CBDKIT_BUFFERS=32
-            DM_READAHEAD_KB=16384
+            DM_READAHEAD_KB=65536
             CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 cache_buffers=8 threads=1"
             ;;
         defaults)
