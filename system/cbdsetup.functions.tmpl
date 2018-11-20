@@ -477,8 +477,6 @@ handle_stop () {
                 ret=1
             fi
         else
-            cbd-client -d "/dev/\$NBD" >/dev/null 2>&1 || true
-
             while ps "\$pid" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
                 sleep 1
                 timeout=\$(( timeout + 1 ))
