@@ -617,9 +617,9 @@ void disconnect(char* device)
     printf("disconnect, ");
     if (ioctl(nbd, NBD_DISCONNECT) < 0)
         err("Ioctl failed: %m\n");
-    printf("sock, ");
-    if (ioctl(nbd, NBD_CLEAR_SOCK) < 0)
-        err("Ioctl failed: %m\n");
+    //printf("sock, ");
+    //if (ioctl(nbd, NBD_CLEAR_SOCK) < 0)
+    //    err("Ioctl failed: %m\n");
     printf("done\n");
 }
 
