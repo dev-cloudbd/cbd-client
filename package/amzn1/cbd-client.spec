@@ -34,7 +34,7 @@ remote block devices over a TCP/IP network.
 
 %files
 %license COPYING
-%{_mandir}/man*/cbd*
+%{_mandir}/man*/cbdtab*
 %{_sbindir}/cbd-client
 %{_sbindir}/cbddisks_start
 %{_sbindir}/cbddisks_stop
@@ -52,7 +52,10 @@ remote block devices over a TCP/IP network.
 %{_libdir}/cbdsetup/cbdsetup.functions
 
 %changelog
-* Fri Nov 16 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.5
+* Tue Nov 20 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.5
+- Production release
+
+* Fri Nov 16 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.4
 - Production release
 
 * Mon Aug 27 2018 Shaun McDowell <smcdowell@cloudbd.io> - 3.15.3-1

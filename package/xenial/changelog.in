@@ -2,6 +2,12 @@ cbd-client (@PACKAGE_VERSION@-@PACKAGE_TAG@) @PACKAGE_DIST@; urgency=medium
 
   * Production release 4.0.5
 
+ -- CloudBD, LLC <support@cloudbd.io>  Tue, 20 Nov 2018 17:40:25 -0400
+
+cbd-client (@PACKAGE_VERSION@-@PACKAGE_TAG@) @PACKAGE_DIST@; urgency=medium
+
+  * Production release 4.0.4
+
  -- CloudBD, LLC <support@cloudbd.io>  Fri, 16 Nov 2018 17:40:25 -0400
 
 cbd-client (@PACKAGE_VERSION@-@PACKAGE_TAG@) @PACKAGE_DIST@; urgency=medium

@@ -109,7 +109,6 @@ AC_CONFIG_FILES([Makefile
 		 doc/Doxyfile
 		 doc/Makefile
 		 man/Makefile
-		 man/cbd-client.8.sh
 		 man/cbdtab.5.sh
 		 src/Makefile
 		 system/Makefile

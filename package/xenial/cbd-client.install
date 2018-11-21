@@ -8,7 +8,6 @@ etc/cloudbd/remotes.d/openstack-keystone-v3.conf.sample
 etc/cloudbd/remotes.d/openstack-keystone-v2.conf.sample
 etc/cloudbd/remotes.d/openstack-swiftstack.conf.sample
 etc/init.d/cbddisks
-usr/share/man/man8/cbd-client.8
 usr/share/man/man5/cbdtab.5
 lib/udev/cbd_id
 lib/udev/cbd_dmsetup
