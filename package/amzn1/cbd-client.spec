@@ -46,7 +46,7 @@ remote block devices over a TCP/IP network.
 %{_sysconfdir}/cloudbd/remotes.d/openstack-keystone-v2.conf.sample
 %{_sysconfdir}/cloudbd/remotes.d/openstack-swiftstack.conf.sample
 %{_sysconfdir}/init.d/cbddisks
-%{_sysconfdir}/bash_completions.d/cloudbd
+%{_sysconfdir}/bash_completion.d/cloudbd
 %{_libdir}/udev/cbd_id
 %{_libdir}/udev/cbd_dmsetup
 %{_libdir}/udev/rules.d/99-cbd.rules
