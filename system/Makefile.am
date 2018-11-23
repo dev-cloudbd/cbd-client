@@ -41,7 +41,7 @@ EXTRA_DIST = \
 	cbdsetup@.service.tmpl \
 	cbdsetup-generator.tmpl \
 	cbdtab \
-	cloudbd.tmpl \
+	cloudbd.completion.tmpl \
 	aws.conf.sample \
 	gcs.conf.sample \
 	openstack-keystone-v3.conf.sample \
