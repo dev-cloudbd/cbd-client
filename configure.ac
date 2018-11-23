@@ -98,7 +98,7 @@ else
 fi
 
 AC_MSG_CHECKING([where to put bash completions])
-PKG_CHECK_VAR([BASHCOMPLETIONS], [bash-completion], [completionsdir], [AC_SUBST([bashcompletionsdir], [$BASHCOMPLETIONS])], [AC_SUBST([bashcompletionsdir], ["${sysconfdir}/bash_completions.d"])])
+PKG_CHECK_VAR([BASHCOMPLETIONS], [bash-completion], [completionsdir], [AC_SUBST([bashcompletionsdir], [$BASHCOMPLETIONS])], [AC_SUBST([bashcompletionsdir], ["${sysconfdir}/bash_completion.d"])])
 AC_MSG_RESULT([$bashcompletionsdir])
 
 AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"])
