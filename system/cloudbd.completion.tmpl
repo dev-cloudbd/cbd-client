@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+_cloudbd_list_commands()
+{
+	COMPREPLY=(\$(compgen -W "create delete info list" -- "\$cur"))
+}
+
+_cloudbd_list_remotes()
+{
+	compopt -o nospace
+	COMPREPLY=(\$(compgen -W "\$(find $sysconfdir/cloudbd/remotes.d/ -type f -name "*.conf" -exec basename -s ".conf" -a \\{} \\+ 2>/dev/null)" -- "\$cur"))
+}
+
+_cloudbd_list_disks()
+{
+	COMPREPLY=(\$(compgen -W "\$(cloudbd ls "\$remote" 2>/dev/null)" -- "\$cur"))
+}
+
+_cloudbd()
+{
+	local pwords=() cur="\$2"
+	for w in "\${COMP_WORDS[@]}"; do
+		[ "\${w::1}" != "-" ] && pwords+=("\$w")
+	done
+
+	local nwords="\${#pwords[@]}"
+	case "\$nwords" in
+	2)	_cloudbd_list_commands
+		;;
+	3)	_cloudbd_list_remotes
+		;;
+	4|5)	[ "\${pwords[3]}" != ":" ] && return
+		remote="\${pwords[2]}"
+		_cloudbd_list_disks
+		;;
+	esac
+
+} && complete -F _cloudbd cloudbd

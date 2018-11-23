@@ -97,6 +97,10 @@ else
     AC_MSG_RESULT([disabled])
 fi
 
+AC_MSG_CHECKING([where to put bash completions])
+PKG_CHECK_VAR([BASHCOMPLETIONS], [bash-completion], [completionsdir], [AC_SUBST([bashcompletionsdir], [$BASHCOMPLETIONS])], [AC_SUBST([bashcompletionsdir], ["${sysconfdir}/bash_completions.d"])])
+AC_MSG_RESULT([$bashcompletionsdir])
+
 AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"])
 
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$localstatedir/run\"'"
@@ -121,6 +125,7 @@ AC_CONFIG_FILES([Makefile
 		 system/cbddisks_start.sh
 		 system/cbddisks_stop.sh
 		 system/cbdsetup.functions.sh
+		 system/cloudbd.completion.sh
                  package/trusty/changelog
                  package/xenial/changelog
 		])

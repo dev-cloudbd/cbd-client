@@ -25,6 +25,9 @@ sbin_SCRIPTS = cbddisks_start cbddisks_stop
 cbdsetup_dir = $(libdir)/cbdsetup
 cbdsetup__DATA = cbdsetup.functions
 
+cloudbd_bash_dir = $(bashcompletionsdir)
+cloudbd_bash__DATA= cloudbd
+
 EXTRA_DIST = \
 	99-cbd.rules.tmpl \
 	cbd_id.tmpl \
@@ -38,6 +41,7 @@ EXTRA_DIST = \
 	cbdsetup@.service.tmpl \
 	cbdsetup-generator.tmpl \
 	cbdtab \
+	cloudbd.tmpl \
 	aws.conf.sample \
 	gcs.conf.sample \
 	openstack-keystone-v3.conf.sample \
@@ -114,6 +118,16 @@ cbdsetup.functions.sh.in: cbdsetup.functions.tmpl sh.tmpl
 	cat sh.tmpl 99-cbd.rules.tmpl > 99-cbd.rules.sh.in
 	echo EOF >> 99-cbd.rules.sh.in
 
-MOSTLYCLEANFILES = cbdsetup@.service cbdsetup-generator cbd_id cbd_dmsetup cbddisks_start cbddisks_stop cbdsetup.functions cbddisks 99-cbd.rules
+cloudbd : cloudbd.completion.sh
+	sh cloudbd.completion.sh > cloudbd
+
+cloudbd.completion.sh.in: cloudbd.completion.tmpl sh.tmpl
+	cat sh.tmpl cloudbd.completion.tmpl > cloudbd.completion.sh.in
+	echo EOF >> cloudbd.completion.sh.in
+
+MOSTLYCLEANFILES = cbdsetup@.service cbdsetup-generator cbd_id cbd_dmsetup \
+		   cbddisks_start cbddisks_stop cbdsetup.functions cbddisks 99-cbd.rules cloudbd
 CLEANFILES = *~
-DISTCLEANFILES = cbdsetup@.service.sh cbdsetup-generator.sh cbd_id.sh cbd_dmsetup.sh cbddisks_start.sh cbddisks_stop.sh cbdsetup.functions.sh cbddisks.sh 99-cbd.rules.sh
+DISTCLEANFILES = cbdsetup@.service.sh cbdsetup-generator.sh cbd_id.sh cbd_dmsetup.sh \
+		 cbddisks_start.sh cbddisks_stop.sh cbdsetup.functions.sh cbddisks.sh 99-cbd.rules.sh cloudbd.completion.sh
+
