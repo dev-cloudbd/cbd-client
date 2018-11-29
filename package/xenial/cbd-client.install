@@ -9,6 +9,7 @@ etc/cloudbd/remotes.d/openstack-keystone-v2.conf.sample
 etc/cloudbd/remotes.d/openstack-swiftstack.conf.sample
 etc/init.d/cbddisks
 usr/share/man/man5/cbdtab.5
+usr/share/bash-completion/completions/cloudbd
 lib/udev/cbd_id
 lib/udev/cbd_dmsetup
 lib/udev/rules.d/99-cbd.rules
