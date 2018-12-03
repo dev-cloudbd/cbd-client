@@ -122,7 +122,7 @@ parse_opts () {
         highperf|highmem)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=262144
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=96 cache_buffers=24 threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=128 cache_buffers=24 threads=4"
             ;;
         connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout)
             if [ -z "\$value" ]; then
