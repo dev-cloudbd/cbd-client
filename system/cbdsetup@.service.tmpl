@@ -9,7 +9,7 @@ Before=remote-fs-pre.target cbdsetup.target
 
 [Service]
 Type=forking
-ExecStart=@sbindir@/cbddisks_start %i
+ExecStart=@systemdutildir@/systemd-cbdsetup %i
 ExecStop=@sbindir@/cbddisks_stop -f %i
 LimitMEMLOCK=infinity
 PIDFile=@runstatedir@/cloudbd/%i.pid

@@ -85,20 +85,23 @@ AC_MSG_CHECKING([where to put systemd unit files])
 if test "x$SYSTEMD_ENABLED" = "xyes"; then
     PKG_CHECK_VAR([SYSTEMDUNIT], [systemd], [systemdsystemunitdir], [], [AC_MSG_ERROR([systemd not found])])
     PKG_CHECK_VAR([SYSTEMDGEN], [systemd], [systemdsystemgeneratordir], [], [AC_MSG_ERROR([systemd not found])])
+    PKG_CHECK_VAR([SYSTEMDUTIL], [systemd], [systemdutildir], [], [AC_MSG_ERROR([systemd not found])])
     AC_MSG_RESULT([found])
     if test "$prefix" = "NONE" -o "$prefix" = "/usr" -o "$prefix" = "/usr/local"; then
         AC_SUBST([systemdunitdir], [$SYSTEMDUNIT])
         AC_SUBST([systemdgendir], [$SYSTEMDGEN])
+        AC_SUBST([systemdutildir], [$SYSTEMDUTIL])
     else
         AC_SUBST([systemdunitdir], ["${prefix}$SYSTEMDUNIT"])
         AC_SUBST([systemdgendir], ["${prefix}$SYSTEMDGEN"])
+        AC_SUBST([systemdutildir], ["${prefix}$SYSTEMDUTIL"])
     fi
 else
     AC_MSG_RESULT([disabled])
 fi
 
 AC_MSG_CHECKING([where to put bash completions])
-PKG_CHECK_VAR([BASHCOMPLETIONS], [bash-completion], [completionsdir], [AC_SUBST([bashcompletionsdir], [$BASHCOMPLETIONS])], [AC_SUBST([bashcompletionsdir], ["${sysconfdir}/bash_completion.d"])])
+PKG_CHECK_VAR([BASHCOMPLETIONS], [bash-completion], [completionsdir], [AC_SUBST([bashcompletionsdir], ["$prefix$BASHCOMPLETIONS"])], [AC_SUBST([bashcompletionsdir], ["${sysconfdir}/bash_completion.d"])])
 AC_MSG_RESULT([$bashcompletionsdir])
 
 AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"])
@@ -125,6 +128,7 @@ AC_CONFIG_FILES([Makefile
 		 system/cbddisks_start.sh
 		 system/cbddisks_stop.sh
 		 system/cbdsetup.functions.sh
+		 system/systemd-cbdsetup.sh
 		 system/cloudbd.completion.sh
                  package/trusty/changelog
                  package/xenial/changelog

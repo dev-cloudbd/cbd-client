@@ -37,7 +37,11 @@ main () {
             exit 1
             ;;
         *)
-            cbds="\$cbds \$param"
+            if [ "x\$cbds" = "x" ]; then
+                cbds="\$param"
+            else
+                cbds="\$cbds \$param"
+            fi
             FORCE_START="yes"
             ;;
         esac
@@ -53,9 +57,30 @@ main () {
         exit 1
     fi
 
-    ulimit -l unlimited
-    do_start \$cbds
-    exit \$?
+    if [ "x\$IS_SYSTEMD" = "xyes" ]; then
+        if ! systemctl daemon-reload 2>/dev/null; then
+            echo "Must be run as root"
+            exit 1
+        fi
+
+        if [ "x\$all" = "xyes" ]; then
+            systemctl start cbdsetup.target
+            exit \$?
+        else
+            for cbd in \$cbds; do
+                systemctl start cbdsetup@"\$cbd".service || exit 1
+            done
+            exit 0
+        fi
+    else
+        if ! ulimit -l unlimited 2>/dev/null; then
+            echo "Must be run as root"
+            exit 1
+        fi
+
+        do_start \$cbds
+        exit \$?
+    fi
 }
 
 main "\$@"

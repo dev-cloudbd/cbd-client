@@ -17,4 +17,5 @@ lib/cbdsetup/cbdsetup.functions
 lib/systemd/system/cbdsetup@.service
 lib/systemd/system/cbdsetup.target
 lib/systemd/system/cbdsetup-pre.target
+lib/systemd/systemd-cbdsetup
 lib/systemd/system-generators/cbdsetup-generator
