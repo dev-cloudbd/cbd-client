@@ -38,7 +38,7 @@ EXTRA_DIST = \
 	cbddisks_start.tmpl \
 	cbddisks_stop.tmpl \
 	cbdsetup.functions.tmpl \
-	cbdsetup.target \
+	cbdsetup.target.tmpl \
 	cbdsetup-pre.target \
 	cbdsetup@.service.tmpl \
 	cbdsetup-generator.tmpl \
@@ -58,6 +58,13 @@ cbdsetup@.service: cbdsetup@.service.sh
 cbdsetup@.service.sh.in: cbdsetup@.service.tmpl sh.tmpl
 	cat sh.tmpl cbdsetup@.service.tmpl > cbdsetup@.service.sh.in
 	echo EOF >> cbdsetup@.service.sh.in
+
+cbdsetup.target: cbdsetup.target.sh
+	sh cbdsetup.target.sh > cbdsetup.target
+
+cbdsetup.target.sh.in: cbdsetup.target.tmpl sh.tmpl
+	cat sh.tmpl cbdsetup.target.tmpl > cbdsetup.target.sh.in
+	echo EOF >> cbdsetup.target.sh.in
 
 cbdsetup-generator: cbdsetup-generator.sh
 	sh cbdsetup-generator.sh > cbdsetup-generator
@@ -136,9 +143,9 @@ cloudbd.completion.sh.in: cloudbd.completion.tmpl sh.tmpl
 	cat sh.tmpl cloudbd.completion.tmpl > cloudbd.completion.sh.in
 	echo EOF >> cloudbd.completion.sh.in
 
-MOSTLYCLEANFILES = cbdsetup@.service cbdsetup-generator systemd-cbdsetup cbd_id cbd_dmsetup \
+MOSTLYCLEANFILES = cbdsetup@.service cbdsetup.target cbdsetup-generator systemd-cbdsetup cbd_id cbd_dmsetup \
 		   cbddisks_start cbddisks_stop cbdsetup.functions cbddisks 99-cbd.rules cloudbd
 CLEANFILES = *~
-DISTCLEANFILES = cbdsetup@.service.sh cbdsetup-generator.sh systemd-cbdsetup.sh cbd_id.sh cbd_dmsetup.sh \
+DISTCLEANFILES = cbdsetup@.service.sh cbdsetup.target.sh cbdsetup-generator.sh systemd-cbdsetup.sh cbd_id.sh cbd_dmsetup.sh \
 		 cbddisks_start.sh cbddisks_stop.sh cbdsetup.functions.sh cbddisks.sh 99-cbd.rules.sh cloudbd.completion.sh
 

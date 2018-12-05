@@ -120,6 +120,7 @@ AC_CONFIG_FILES([Makefile
 		 src/Makefile
 		 system/Makefile
 		 system/cbdsetup@.service.sh
+		 system/cbdsetup.target.sh
 		 system/cbdsetup-generator.sh
 		 system/99-cbd.rules.sh
 		 system/cbd_id.sh
