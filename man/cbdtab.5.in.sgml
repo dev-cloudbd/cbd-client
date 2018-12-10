@@ -125,66 +125,126 @@ manpage.1: manpage.sgml
               networking and at least 8GB of memory.</para>
           </listitem>
         </varlistentry>
+        <varlistentry>
+          <term><option>noauto</option></term>
+          <listitem>
+            <para>Do not attach this disk automatically. The disk can still be
+                  attached manually using the <command>cbddisks_start</command>
+                  command.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
     </refsect2>
+  </refsect1>
+  <refsect1>
+    <title>Attaching/Detaching Disks</title>
+
+    <para>CloudBD disks configured in the <filename>cbdtab</filename> can
+          be attached or detached from the current server using the
+          <command>cbddisks_start</command> and
+          <command>cbddisks_stop</command> commands. Attached disks can be
+          found in the <filename>/dev/mapper/</filename> directory.</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>To attach all disks defined in the cbdtab file
+              (without the "noauto" setting) run:</para>
+        <para><command>cbddisks_start -a</command></para>
+      </listitem>
+      <listitem>
+        <para>To detach all attached disks run:</para>
+        <para><command>cbddisks_stop -a</command></para>
+      </listitem>
+      <listitem>
+        <para>To attach a specific disk from the cbdtab file run:</para>
+        <para><command>cbddisks_start &lt;remote&gt;:&lt;disk&gt;</command></para>
+      </listitem>
+      <listitem>
+        <para>To detach a specific attached disk run:</para>
+        <para><command>cbddisks_stop &lt;remote&gt;:&lt;disk&gt;</command></para>
+      </listitem>
+    </itemizedlist>
+
+    <para>When detaching CloudBD disks that are busy (e.g., still mounted),
+          the disk can be forced stop using the -f flag to
+          <command>cbddisks_stop</command>.</para>
     <refsect2>
       <title>Upstart/SysVinit</title>
 
-      <para>On systems using Upstart or SysVinit, CloudBD disks specified in
-        <filename>cbdtab</filename> are automatically started at boot time by the
-        cbddisks service. Started disks are available as a block device at
-        <filename>/dev/mapper/&lt;remote&gt;:&lt;disk&gt;</filename>.</para>
+      <para>On servers using Upstart or SysVinit, disks specified in
+            <filename>cbdtab</filename> are managed by the
+            <filename>cbddisks</filename> service. Starting the service will
+            attach all disks defined in the cbdtab file (without the "noauto"
+            setting). By default, this service is started during the system
+            startup to automatically attach your CloudBD disks.</para>
 
-      <para>To start all CloudBD disks specified in
-        <filename>cbdtab</filename>, run
-        <command>service cbddisks start</command>.</para>
+      <para>In addition to the <command>cbddisks_start</command> and
+            <command>cbddisks_stop</command> commands, the following commands
+            also attach and detach CloudBD disks.</para>
 
-      <para>To stop all running CloudBD disks, run
-        <command>service cbddisks stop</command>.</para>
-
-      <para>To start a specific CloudBD disk from the cbdtab file, run
-        <command>cbddisks_start</command> with the &lt;remote&gt;:&lt;disk&gt;
-        as the sole argument.</para>
-
-      <para>To stop a running CloudBD disk, run
-        <command>cbddisks_stop</command> with the &lt;remote&gt;:&lt;disk&gt;
-        as the sole argument. If the disk is busy or in use, use the -f option
-        to force the disk to stop.</para>
+      <itemizedlist>
+        <listitem>
+          <para>To attach all disks defined in the <filename>cbdtab</filename> file
+                (without the "noauto" setting) run:</para>
+          <para><command>service cbddisks start</command></para>
+        </listitem>
+        <listitem>
+          <para>To detach all attached disks run:</para>
+          <para><command>service cbddisks stop</command></para>
+        </listitem>
+      </itemizedlist>
     </refsect2>
     <refsect2>
       <title>Systemd</title>
 
-      <para>On systems using Systemd, CloudBD disks specified in
-        <filename>cbdtab</filename> are automatically started at boot by
-        generated service files for each disk and the
-        <filename>cbdsetup.target</filename>. Started disks are available as
-        a block device at
-        <filename>/dev/mapper/&lt;remote&gt;:&lt;disk&gt;</filename>.</para>
+      <para>For servers using Systemd, CloudBD disks are managed by Systemd
+            service files. During system startup or whenever a
+            <command>systemctl daemon-reload</command> is issued, Systemd parses the
+            cbdtab and generates Systemd service files
+            named <filename>cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</filename>.
+            These generated CloudBD service files collectively make up the
+            Systemd target <filename>cbdsetup.target</filename>. By default,
+            this target is started during system startup to automatically
+            attach your CloudBD disks.</para>
 
-      <para>When editing the <filename>cbdtab</filename> file, you must run
-        <command>systemctl daemon-reload</command> afterwards to update the
-        generated systemd service files for your disks.</para>
+      <para>The <command>cbddisks_start</command> and
+            <command>cbddisks_stop</command> commands will continue to work
+            on servers using Systemd. The commands are forwarded to the CloudBD
+            disk service files that manage the CloudBD disks.</para>
 
-      <para>To start all CloudBD disks specified in
-        <filename>cbdtab</filename>, run <command>systemctl start
-        cbdsetup.target</command> or <command>systemctl start
-        cbdsetup@*.service</command>.</para>
+      <para>Additionally, you can invoke systemctl commands directly to the
+            CloudBD disk service files or the cbdsetup target as an alternative
+            method to attach/detach disks. When directly using systemctl
+            commands to manage CloudBD disks you must issue a
+            <command>systemctl daemon-reload</command> after any modifications to the
+            cbdtab so that Systemd generates updated service files.</para>
 
-      <para>To stop all running CloudBD disks, run
-        <command>systemctl stop cbdsetup@*.service</command>.</para>
-
-      <para>To start an individual CloudBD disk specified in
-        <filename>cbdtab</filename>, run <command>systemctl start
-        cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command>.</para>
-
-      <para>To stop an individual running CloudBD disk, run <command>systemctl
-        stop cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command>.</para>
+      <itemizedlist>
+        <listitem>
+          <para>To attach all disks defined in the cbdtab file
+                (without the "noauto" setting) run:</para>
+          <para><command>systemctl start cbdsetup.target</command></para>
+        </listitem>
+        <listitem>
+          <para>To detach all attached disks run:</para>
+          <para><command>systemctl stop cbdsetup@*.service</command></para>
+        </listitem>
+        <listitem>
+          <para>To attach a specific disk from the cbdtab file run:</para>
+          <para><command>systemctl start cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command></para>
+        </listitem>
+        <listitem>
+          <para>To detach a specific attached disk run:</para>
+          <para><command>systemctl stop cbdsetup@&lt;remote&gt;:&lt;disk&gt;.service</command></para>
+        </listitem>
+      </itemizedlist>
     </refsect2>
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
 
     <para>The CloudBD documentation pages at
-      https://www.cloudbd.io/docs.</para>
+      https://www.cloudbd.io/docs</para>
 
   </refsect1>
   <refsect1>
