@@ -31,7 +31,7 @@ remote block devices over a TCP/IP network.
 
 %install
 %make_install
-ln -s /dev/null %{buildroot}/%{_libdir}/systemd/system/cbddisks.service
+ln -s /dev/null %{buildroot}%{_unitdir}/cbddisks.service
 
 %post
 %systemd_post %{S:1}
@@ -59,14 +59,14 @@ ln -s /dev/null %{buildroot}/%{_libdir}/systemd/system/cbddisks.service
 %{_sysconfdir}/bash_completion.d/cloudbd
 %{_libdir}/udev/cbd_id
 %{_libdir}/udev/cbd_dmsetup
-%{_libdir}/udev/rules.d/99-cbd.rules
+%{_udevrulesdir}/99-cbd.rules
 %{_libdir}/cbdsetup/cbdsetup.functions
-%{_libdir}/systemd/system/cbdsetup@.service
-%{_libdir}/systemd/system/cbdsetup.target
-%{_libdir}/systemd/system/cbdsetup-pre.target
+%{_unitdir}/cbdsetup@.service
+%{_unitdir}/cbdsetup.target
+%{_unitdir}/cbdsetup-pre.target
 %{_libdir}/systemd/systemd-cbdsetup
 %{_libdir}/systemd/system-generators/cbdsetup-generator
-%{_libdir}/systemd/system/cbddisks.service
+%{_unitdir}/cbddisks.service
 
 %changelog
 * Tue Nov 20 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.5
