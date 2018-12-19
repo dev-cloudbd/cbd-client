@@ -3,7 +3,8 @@ Description=CloudBD Disk %i
 Documentation=man:cbdtab(5)
 SourcePath=@sysconfdir@/cloudbd/cbdtab
 DefaultDependencies=no
-Wants=network-online.target remote-fs-pre.target
+Requires=network-online.target
+Wants=remote-fs-pre.target
 After=network-online.target local-fs.target cbdsetup-pre.target
 Before=remote-fs-pre.target cbdsetup.target
 
