@@ -23,7 +23,7 @@ debug () {
 
 main () {
     local normal_d="\$1" early_d="\$2" late_d="\$3"
-    local target_name="sysinit.target" gen_d="\$normal_d"
+    local target_name="remote-fs.target" gen_d="\$normal_d"
     local link_path="\$gen_d/\${target_name}.wants/\${CBDSETUP_TARGET_NAME}"
     local link_disk_path="\$gen_d/\${CBDSETUP_TARGET_NAME}.requires"
     local result="\$DISABLE"
