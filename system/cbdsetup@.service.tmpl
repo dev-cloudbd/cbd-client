@@ -12,4 +12,4 @@ Type=forking
 ExecStart=@systemdutildir@/systemd-cbdsetup %i
 ExecStop=@sbindir@/cbddisks_stop -f %i
 LimitMEMLOCK=infinity
-PIDFile=@runstatedir@/cloudbd/%i.pid
+PIDFile=@localstatedir@/run/cloudbd/%i.pid
