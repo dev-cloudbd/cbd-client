@@ -124,7 +124,7 @@ parse_opts () {
             DM_READAHEAD_KB=262144
             CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=128 cache_buffers=24 threads=4"
             ;;
-        connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout)
+        connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout|rest_threads|rand_block_timeout)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
                 return 1

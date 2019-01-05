@@ -12,7 +12,7 @@ Requires(pre): /usr/sbin/useradd, /usr/bin/getent, /usr/sbin/groupadd
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-Requires:       cloudbd >= 2.1.1, cbdkit >= 1.4.1
+Requires:       cloudbd >= 2.2.0, cbdkit >= 1.4.1
 
 %description 
 Tools for the Linux Kernel's network block device, allowing you to use
@@ -69,6 +69,12 @@ ln -s /dev/null %{buildroot}%{_unitdir}/cbddisks.service
 %{_unitdir}/cbddisks.service
 
 %changelog
+* Fri Jan 4 2019 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.8
+- Production Release
+
+* Wed Dec 19 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.7
+- Production Release
+
 * Tue Nov 20 2018 Shaun McDowell <smcdowell@cloudbd.io> - 4.0.5
 - Production release
 
