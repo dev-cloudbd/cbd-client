@@ -455,6 +455,8 @@ handle_stop () {
                 dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
             elif [ "\$type" = "cbd" ]; then
                 dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
+            elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
+                echo 1 > "/sys/block/\$kname/bcache/stop" || true
             fi
         done
         sleep 1
