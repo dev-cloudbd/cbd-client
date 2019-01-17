@@ -32,6 +32,9 @@ remote block devices over a TCP/IP network.
 %install
 %make_install
 
+mkdir -p %{buildroot}%{_sysconfdir}/profile.d/
+echo 'source %{_sysconfdir}/bash_completion.d/cloudbd' > %{buildroot}%{_sysconfdir}/profile.d/cloudbd-cli.sh
+
 %files
 %license COPYING
 %{_mandir}/man*/cbdtab*
@@ -47,6 +50,7 @@ remote block devices over a TCP/IP network.
 %{_sysconfdir}/cloudbd/remotes.d/openstack-swiftstack.conf.sample
 %{_sysconfdir}/init.d/cbddisks
 %{_sysconfdir}/bash_completion.d/cloudbd
+%{_sysconfdir}/profile.d/cloudbd-cli.sh
 %{_libdir}/udev/cbd_id
 %{_libdir}/udev/cbd_dmsetup
 %{_libdir}/udev/rules.d/99-cbd.rules
