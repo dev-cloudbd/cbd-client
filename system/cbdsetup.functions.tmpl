@@ -1,4 +1,4 @@
-# Copyright 2018 CloudBD, LLC
+# Copyright 2019 CloudBD, LLC
 # This file is for inclusion with
 #    . $libdir/cbdsetup/cbddisks.functions
 # and should not be executed directly.
@@ -31,6 +31,36 @@ fi
 [ -x $sbindir/cbdkit ] || exit 0
 [ -x $sbindir/cbd-client ] || exit 0
 [ -x $bindir/cloudbd ] || exit 0
+
+# Parse cbdtab the same way the cbdsetup systemd generator does and print warnings when 
+# we would skip a cbdtab entry.
+check_systemd_cbdtab () {
+    local NBD CBD OPTS
+    while read -r NBD CBD OPTS; do
+        if [ "x\$NBD" = "x" ] || [ "x\$CBD" = "x" ] ||
+            ! expr "x\$NBD" : 'xnbd[[:digit:]]\+' >/dev/null ||
+            ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+' >/dev/null; then
+            log_warning_msg "WARNING: cbdtab invalid line ('\$NBD' '\$CBD')... skipping"
+            continue
+        fi
+
+        if [ "x\$(eval "echo \\\$\$NBD")" = "x1" ]; then
+            log_warning_msg "WARNING: cbdtab duplicate nbd device found ('\$NBD')... skipping"
+            continue
+        fi
+
+        CBDx="\$(echo "\$CBD" | sed 's/://')"
+        if [ "x\$(eval "echo \\\$\$CBDx")" = "x1" ]; then
+            log_warning_msg "WARNING: cbdtab duplicate remote:disk found ('\$CBD')... skipping"
+            continue
+        fi
+
+        eval "\$NBD=1"
+        eval "\$CBDx=1"
+    done  <<- EOF
+	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
+	EOF
+}
 
 # Parse and validate cbd value from socket path
 # input:   \$1 cbd socket file path
@@ -358,7 +388,7 @@ do_start () {
                    ;;
             esac
         done <<- EOF
-	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/ *#.*\$//g')
+	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
 	EOF
 
         log_action_cont_msg "CloudBD disks started"

@@ -65,11 +65,26 @@ main () {
                     debug "\$CBD (skipping - noauto)"
                     continue
                 fi
+
+                if [ "x\$(eval "echo \\\$\$NBD")" = "x1" ]; then
+                    debug "ERROR: duplicate nbd device found in cbdtab (\$NBD)"
+                    continue
+                fi
+
+                CBDx="\$(echo "\$CBD" | sed 's/://')"
+                if [ "x\$(eval "echo \\\$\$CBDx")" = "x1" ]; then
+                    debug "ERROR: duplicate cbd device found in cbdtab (\$CBD)"
+                    continue
+                fi
+
                 if ! ln -snf "\$CBDSETUP_SERVICE" "\$link_disk_path/cbdsetup@\${CBD}.service"; then
                     debug "ERROR: 'ln -snf \$CBDSETUP_SERVICE \$link_disk_path/cbdsetup@\${CBD}.service'"
                     continue
                 else
                     debug "\$CBD (enabled)"
+
+                    eval "\$NBD=1"
+                    eval "\$CBDx=1"
                 fi
             done 
         fi
