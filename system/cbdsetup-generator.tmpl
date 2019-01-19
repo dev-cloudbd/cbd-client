@@ -55,8 +55,8 @@ main () {
 
             grep -vE '^[[:blank:]]*(#|$)' "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g' | while read -r NBD CBD OPTS; do
                 if [ "x\$NBD" = "x" ] || [ "x\$CBD" = "x" ] ||
-                   ! expr "x\$NBD" : 'xnbd[[:digit:]]\+' >/dev/null ||
-                   ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+' >/dev/null; then
+                   ! expr "x\$NBD" : 'xnbd[[:digit:]]\+\$' >/dev/null ||
+                   ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$' >/dev/null; then
                     debug "ERROR: found invalid line in cbdtab"
                     continue
                 fi

@@ -39,12 +39,12 @@ check_systemd_cbdtab () {
     while read -r NBD CBD OPTS; do
         [ -z "\$NBD" ] && continue;
 
-        if ! expr "x\$NBD" : 'xnbd[[:digit:]]\+' >/dev/null; then
+        if ! expr "x\$NBD" : 'xnbd[[:digit:]]\+\$' >/dev/null; then
             log_warning_msg "WARNING: cbdtab has invalid nbd '\$NBD'"
             continue
         fi
 
-        if [ "x\$CBD" = "x" ] || ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+' >/dev/null; then
+        if [ "x\$CBD" = "x" ] || ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$' >/dev/null; then
             log_warning_msg "WARNING: cbdtab has invalid remote:disk '\$CBD'"
             continue
         fi
