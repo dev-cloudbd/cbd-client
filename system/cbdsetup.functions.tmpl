@@ -62,8 +62,8 @@ check_systemd_cbdtab () {
             continue
         fi
 
-        eval "\$NBD=1"
-        eval "\$CBDx=1"
+        eval "local \$NBD=1"
+        eval "local \$CBDx=1"
     done  <<- EOF
 	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
 	EOF
@@ -373,7 +373,11 @@ do_start () {
         local nbd cbd opts cbdx
         # filter empty lines, comment lines, and end-of-line comments
         while read nbd cbd opts; do
-            if [ "x\$nbd" = "x" ] || [ "x\$cbd" = "x" ]; then continue; fi
+            if [ "x\$nbd" = "x" ] || [ "x\$cbd" = "x" ] || \
+                   ! expr "x\$nbd" : 'xnbd[[:digit:]]\+\$' >/dev/null || \
+                   ! expr "x\$cbd" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$' >/dev/null; then
+               continue
+            fi
 
             if [ "x\$(eval "echo \\\$\$nbd")" = "x1" ]; then
                 continue
@@ -407,8 +411,8 @@ do_start () {
                    ;;
             esac
 
-            eval "\$nbd=1"
-            eval "\$cbdx=1"
+            eval "local \$nbd=1"
+            eval "local \$cbdx=1"
 
         done <<- EOF
 	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
