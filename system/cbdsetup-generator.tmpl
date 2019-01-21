@@ -71,7 +71,9 @@ main () {
                     continue
                 fi
 
-                CBDx="\$(echo "\$CBD" | sed 's/://')"
+                CBDx="\$(echo "\$CBD" | sed 's/_/__/g')"
+                CBDx="\$(echo "\$CBDx" | sed 's/:/_3A_/g')"
+                CBDx="\$(echo "\$CBDx" | sed 's/-/_2D_/g')"
                 if [ "x\$(eval "echo \\\$\$CBDx")" = "x1" ]; then
                     debug "ERROR: duplicate cbd device found in cbdtab (\$CBD)"
                     continue
