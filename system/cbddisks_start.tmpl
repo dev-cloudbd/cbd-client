@@ -120,6 +120,7 @@ main () {
             exit 1
         fi
 
+        check_systemd_cbdtab
         do_start \$cbds
         exit \$?
     fi
