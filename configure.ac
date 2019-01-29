@@ -109,7 +109,6 @@ AM_CONDITIONAL([SYSTEMD], [test -n "$systemdunitdir" && test -n "$systemdgendir"
 AM_CPPFLAGS=$AM_CPPFLAGS" -DSYSCONFDIR='\"$sysconfdir\"' -DRUNSTATEDIR='\"$localstatedir/run\"'"
 AC_SUBST(AM_CPPFLAGS)
 AC_SUBST(PACKAGE_TAG)
-AC_SUBST(PACKAGE_DIST)
 AC_CONFIG_SRCDIR([src/nbd.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([Makefile
