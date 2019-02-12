@@ -364,7 +364,7 @@ do_start () {
     modprobe -qb nbd || true
 
     # Create the runstate directory if missing
-    [ -d "\$RUNSTATE_D" ] || mkdir -p -m 770 "\$RUNSTATE_D"
+    [ -d "\$RUNSTATE_D" ] || mkdir -p -m 755 "\$RUNSTATE_D"
 
     # Start all configured disks if no parameters passed
     if [ "\$#" -eq 0 ]; then
