@@ -146,15 +146,20 @@ parse_opts () {
         value=\$(echo "\$opt" | sed '/=/!d;s/^.*=//')
 
         case "\$param" in
+        lownet)
+            CBDKIT_BUFFERS=16
+            DM_READAHEAD_KB=32768
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=8 cache_buffers=4 threads=1 rest_threads=1"
+            ;;
         lowmem)
             CBDKIT_BUFFERS=32
             DM_READAHEAD_KB=65536
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 cache_buffers=8 threads=1"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 cache_buffers=8 threads=1 rest_threads=3"
             ;;
         defaults)
             CBDKIT_BUFFERS=64
             DM_READAHEAD_KB=65536
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=48 cache_buffers=16 threads=2"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 cache_buffers=16 threads=2 rest_threads=4"
             ;;
         highperf|highmem)
             CBDKIT_BUFFERS=128
