@@ -1,0 +1,47 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+upgrade)
+	DIST="(trusty|xenial|bionic)"
+
+	echo "Updating cloudbd"
+
+	echo -n " * Searching /etc/apt/ files for outdated cloudbd repos..."
+	OUTPUT="$(grep -ERl -e "repo.cloudbd.io/$DIST/cloudbd[[:space:]]*$DIST" /etc/apt/ 2>&1)"
+	RET="$?"
+
+	if [ "$RET" = "2" ]; then
+	        echo "FAILED ($OUTPUT)"
+	        exit 1
+	elif [ "$RET" = "1" ]; then
+	        echo "OK (no outdated repos found)"
+	elif [ "$RET" = "0" ]; then
+	        SOURCES=($OUTPUT)
+	        echo "OK (${#SOURCES[@]} outdated repos found)"
+	else
+	        echo "FAILED (unexpected grep return value)"
+	        exit 1
+	fi
+
+	for file in ${SOURCES[@]}; do
+	        echo -n " * Updating '$file'..."
+	        OUTPUT="$(sed -ri "s/(repo.cloudbd.io\/$DIST\/cloudbd[[:space:]]*)$DIST/\1cloudbd/" $file 2>&1 1>/dev/null)"
+	        RET="$?"
+
+	        if [ "$RET" != "0" ]; then
+	                echo "FAILED ($OUTPUT)"
+	                exit 1
+	        else
+	                echo "OK"
+	        fi
+	done
+
+	echo "Update Success"
+	;;;
+esac
+
+#DEBHELPER#
+
+exit 0
+
