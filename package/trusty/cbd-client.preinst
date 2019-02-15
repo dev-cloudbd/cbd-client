@@ -38,7 +38,7 @@ upgrade)
 	done
 
 	echo "Update Success"
-	;;;
+	;;
 esac
 
 #DEBHELPER#
