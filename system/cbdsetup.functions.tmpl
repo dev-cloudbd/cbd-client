@@ -373,7 +373,7 @@ do_start () {
 
     # Start all configured disks if no parameters passed
     if [ "\$#" -eq 0 ]; then
-        log_action_begin_msg "Starting CloudBD disks"
+        log_action_msg "Starting CloudBD disks"
 
         local nbd cbd opts cbdx
         # filter empty lines, comment lines, and end-of-line comments
@@ -575,7 +575,7 @@ do_stop () {
     [ -d "\$RUNSTATE_D" ] || return 0
 
     if [ "\$#" -eq 0 ]; then
-        log_action_begin_msg "Stopping CloudBD disks"
+        log_action_msg "Stopping CloudBD disks"
         local socket
         for socket in \$(ls \$RUNSTATE_D/*.socket 2>/dev/null); do
             get_cbd_from_socket "\$socket" || continue
