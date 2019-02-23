@@ -29,7 +29,7 @@ main () {
     local result="\$DISABLE"
     local NBD CBD OPTS
     # Check for any valid targets
-    if grep -qE '^[[:blank:]]*(#|$)' "\$TABFILE"; then
+    if grep -qvE '^[[:blank:]]*(#|$)' "\$TABFILE"; then
         result="\$ENABLE"
     fi
 
