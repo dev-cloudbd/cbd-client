@@ -166,7 +166,9 @@ parse_opts () {
             DM_READAHEAD_KB=262144
             CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 cache_buffers=24 threads=4 rest_threads=12"
             ;;
-        connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout|rest_threads|rand_block_timeout)
+        connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout|rest_threads|rand_block_timeout| \
+        asrestly_ssl_verify_peer|asrestly_header_size|asrestly_connect_timeout_sec|asrestly_dead_peer_timeout_sec| \
+        asrestly_total_rest_timeout_sec|asrestly_rest_attempt_timeout_sec|asrestly_base_slowdown_delay_ms|asrestly_max_slowdown_delay_ms)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
                 return 1

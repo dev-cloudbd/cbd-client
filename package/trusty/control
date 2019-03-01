@@ -8,7 +8,7 @@ Homepage: https://www.cloudbd.io/
 
 Package: cbd-client
 Architecture: linux-any
-Depends: ${shlibs:Depends}, ${misc:Depends}, debconf | debconf-2.0, cloudbd-plugin (>= 2.2.3), cloudbd-cli, cbdkit(>= 1.4.1)
+Depends: ${shlibs:Depends}, ${misc:Depends}, debconf | debconf-2.0, cloudbd-plugin (>= 2.2.4), cloudbd-cli, cbdkit(>= 1.4.1)
 Description: Network Block Device protocol - client
  Network Block Device (NBD) is a client/server protocol that
  emulates a block device (such as a hard disk, a floppy, or a CD-ROM)
