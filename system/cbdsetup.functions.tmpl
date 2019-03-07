@@ -500,7 +500,7 @@ handle_stop () {
             fi
 
             if [ "\$type" = "lvm" ]; then
-                local lvmname="\$(cat /sys/block/"\$kname"/dm/name)"
+                local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
                 local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
                 local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
                 if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
