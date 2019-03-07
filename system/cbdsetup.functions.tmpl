@@ -346,7 +346,7 @@ handle_start () {
     local timeout=0
     while [ \$timeout -lt \$CBDDISKS_START_TIMEOUT ]; do
         # Return success if device mapper picks up \$CBD
-        [ -e /dev/mapper/"\$CBD" ] && return 0
+        [ -e /dev/mapper/"\$CBD" ] && partprobe /dev/mapper/"\$CBD" && return 0
 
         # Check that server is still running
         if ! ps "\$PID" >/dev/null 2>&1; then

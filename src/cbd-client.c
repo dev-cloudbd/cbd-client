@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/mman.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -581,6 +582,8 @@ void finish_sock(int sock, int nbd)
         else
             err("Ioctl NBD_SET_SOCK failed: %m\n");
     }
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
 }
 
 void usage(char* errmsg, ...)
@@ -833,6 +836,8 @@ int main(int argc, char *argv[])
             perror("could not open device for updating partition table");
         exit(0);
     }
+
+
 
     if (ioctl(nbd, NBD_DO_IT) < 0)
     {
