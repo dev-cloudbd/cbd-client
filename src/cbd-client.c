@@ -778,6 +778,8 @@ int main(int argc, char *argv[])
 
         if (i == 0)
         {
+            if (num_connections > 1)
+                flags |= NBD_FLAG_CAN_MULTI_CONN;
             setsizes(nbd, size64, blocksize, flags);
             set_timeout(nbd, timeout);
         }
