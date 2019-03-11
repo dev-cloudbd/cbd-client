@@ -97,7 +97,7 @@ int check_conn(char* devname, int do_print)
     return 0;
 }
 
-int openunix(const char *device_name)
+int openunix(const char *device_name, int socket_id)
 {
     int sock;
     struct sockaddr_un un_addr;
@@ -106,7 +106,7 @@ int openunix(const char *device_name)
     un_addr.sun_family = AF_UNIX;
 
     // unix domain socket path = "RUNSTATEDIR/cloudbd/<remote_id:device_id>.socket"
-    if (snprintf(un_addr.sun_path, sizeof un_addr.sun_path, RUNSTATEDIR "/cloudbd/%s.socket", device_name) >= sizeof un_addr.sun_path)
+    if (snprintf(un_addr.sun_path, sizeof un_addr.sun_path, RUNSTATEDIR "/cloudbd/%s:%d.socket", device_name, socket_id) >= sizeof un_addr.sun_path)
     {
         err_nonfatal("UNIX socket path too long");
         return -1;
@@ -582,8 +582,6 @@ void finish_sock(int sock, int nbd)
         else
             err("Ioctl NBD_SET_SOCK failed: %m\n");
     }
-
-    mlockall(MCL_CURRENT | MCL_FUTURE);
 }
 
 void usage(char* errmsg, ...)
@@ -771,7 +769,7 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < num_connections; i++)
     {
-        sock = openunix(device_name);
+        sock = openunix(device_name, i);
         if (sock < 0)
             exit(EXIT_FAILURE);
 
@@ -784,6 +782,8 @@ int main(int argc, char *argv[])
             set_timeout(nbd, timeout);
         }
     }
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
 
     /* Go daemon */
     if (!nofork)

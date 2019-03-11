@@ -78,7 +78,7 @@ check_systemd_cbdtab () {
 # int get_cbd_from_socket (string socket_path)
 get_cbd_from_socket () {
     local sock_f="\${1##*/}"
-    parse_cbd "\${sock_f%%.socket}" || return 1
+    parse_cbd "\${sock_f%%:0.socket}" || return 1
     return 0
 }
 
@@ -311,12 +311,12 @@ handle_start () {
             return 1
         fi
 
-        local SOCKET="\$RUNSTATE_D/\${CBD}.socket"
+        local SOCKET="\$RUNSTATE_D/\${CBD}"
         local UDEV="\$RUNSTATE_D/\${NBD}.udev"
         local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
 
         # Clean out any previous driver run files
-        rm -f "\$SOCKET" "\$PIDFILE" "\$UDEV" "\$STOPPING"
+        rm -f "\${SOCKET}:0.socket" "\${SOCKET}:1.socket" "\$PIDFILE" "\$UDEV" "\$STOPPING"
 
         # Generate udev parameters
         if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$((DM_READAHEAD_KB * 2)); } 2>/dev/null > "\$UDEV"; then
@@ -325,8 +325,8 @@ handle_start () {
         fi
 
         # Start the server
-        local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -f \$CBD /dev/\$NBD"
-        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
+        local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C 2 -f \$CBD /dev/\$NBD"
+        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \${SOCKET}:0.socket -U \${SOCKET}:1.socket -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
         if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
             ERRMSG="cbdkit returned with error"
             return 1
@@ -564,7 +564,7 @@ handle_stop () {
         ret=1
         ERRMSG="failed to stop device mapper"
     else
-        rm -f "\$RUNSTATE_D/\${CBD}.socket" "\$RUNSTATE_D/\${CBD}.pid"
+        rm -f "\$RUNSTATE_D/\${CBD}:0.socket" "\$RUNSTATE_D/\${CBD}:1.socket" "\$RUNSTATE_D/\${CBD}.pid"
     fi
 
     return \$ret
@@ -579,7 +579,7 @@ do_stop () {
     if [ "\$#" -eq 0 ]; then
         log_action_msg "Stopping CloudBD disks"
         local socket
-        for socket in \$(ls \$RUNSTATE_D/*.socket 2>/dev/null); do
+        for socket in \$(ls \$RUNSTATE_D/*:0.socket 2>/dev/null); do
             get_cbd_from_socket "\$socket" || continue
             handle_stop "\$CBD"
             case \$? in
