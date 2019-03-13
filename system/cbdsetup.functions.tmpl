@@ -78,7 +78,9 @@ check_systemd_cbdtab () {
 # int get_cbd_from_socket (string socket_path)
 get_cbd_from_socket () {
     local sock_f="\${1##*/}"
-    parse_cbd "\${sock_f%%:0.socket}" || return 1
+    sock_f="\${sock_f%%:0.socket}"
+    sock_f="\${sock_f%%.socket}"
+    parse_cbd "\${sock_f}" || return 1
     return 0
 }
 
@@ -135,6 +137,7 @@ parse_opts () {
     local IFS
 
     CBDKIT_BUFFERS="64"
+    CBDKIT_SOCKETS="1"
     DM_READAHEAD_KB="65536"
     CBDKIT_PARAMS=""
     ERRMSG=""
@@ -148,23 +151,28 @@ parse_opts () {
         case "\$param" in
         lownet)
             CBDKIT_BUFFERS=16
-            DM_READAHEAD_KB=32768
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=8 cache_buffers=4 threads=1 rest_threads=1"
+            DM_READAHEAD_KB=16384
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=8 connections=16 cache_buffers=8 threads=1 rest_threads=1"
             ;;
         lowmem)
             CBDKIT_BUFFERS=32
-            DM_READAHEAD_KB=65536
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 cache_buffers=8 threads=1 rest_threads=3"
+            DM_READAHEAD_KB=32768
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 connections=24 cache_buffers=8 threads=1 rest_threads=3"
             ;;
         defaults)
             CBDKIT_BUFFERS=64
             DM_READAHEAD_KB=65536
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 cache_buffers=16 threads=2 rest_threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 connections=62 cache_buffers=16 threads=2 rest_threads=4"
             ;;
         highperf|highmem)
             CBDKIT_BUFFERS=128
-            DM_READAHEAD_KB=262144
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 cache_buffers=24 threads=4 rest_threads=12"
+            DM_READAHEAD_KB=131072
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 connection=160 cache_buffers=24 threads=4 rest_threads=12"
+            ;;
+        gluster)
+            CBDKIT_BUFFERS=128
+            DM_READAHEAD_KB=16384
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connection=62 cache_buffers=50 threads=2 rest_threads=4"
             ;;
         connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout|rest_threads|rand_block_timeout| \
         asrestly_ssl_verify_peer|asrestly_header_size|asrestly_connect_timeout_sec|asrestly_dead_peer_timeout_sec| \
@@ -223,7 +231,23 @@ parse_opts () {
                 return 1
             fi
             CBDKIT_BUFFERS="\$value"
-        ;;
+            ;;
+        multisock)
+            if [ -z "\$value" ]; then
+                CBDKIT_SOCKETS="2"
+            elif ! expr "x\$value" : 'x[[:digit:]]\+\$' > /dev/null; then
+                ERRMSG="bad value for option multisock"
+                return 1
+            elif [ "\$value" -le 0 ]; then
+                ERRMSG="option multisock must be greater than 0"
+                return 1
+            elif [ "\$value" -gt 16 ]; then
+                ERRMSG="option multisock must be <= 16"
+                return 1
+            else
+                CBDKIT_SOCKETS="\$value"
+            fi
+            ;;
         noauto)
             IGNORE="yes"
             ;;
@@ -316,7 +340,7 @@ handle_start () {
         local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
 
         # Clean out any previous driver run files
-        rm -f "\${SOCKET}:0.socket" "\${SOCKET}:1.socket" "\$PIDFILE" "\$UDEV" "\$STOPPING"
+        rm -f "\${SOCKET}.socket" \${SOCKET}:*.socket "\$PIDFILE" "\$UDEV" "\$STOPPING"
 
         # Generate udev parameters
         if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$((DM_READAHEAD_KB * 2)); } 2>/dev/null > "\$UDEV"; then
@@ -325,9 +349,9 @@ handle_start () {
         fi
 
         # Start the server
-        local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C 2 -f \$CBD /dev/\$NBD"
-        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \${SOCKET}:0.socket -U \${SOCKET}:1.socket -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
-        if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
+        local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C \$CBDKIT_SOCKETS -f \$CBD /dev/\$NBD"
+        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP '-U \${SOCKET}:'{0..\$((CBDKIT_SOCKETS-1))}.socket -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
+        if ! eval \$SERVER_CMD --run "\$CLIENT_CMD"; then
             ERRMSG="cbdkit returned with error"
             return 1
         fi
@@ -564,7 +588,7 @@ handle_stop () {
         ret=1
         ERRMSG="failed to stop device mapper"
     else
-        rm -f "\$RUNSTATE_D/\${CBD}:0.socket" "\$RUNSTATE_D/\${CBD}:1.socket" "\$RUNSTATE_D/\${CBD}.pid"
+        rm -f "\$RUNSTATE_D/\${CBD}.socket" \$RUNSTATE_D/\${CBD}:*.socket "\$RUNSTATE_D/\${CBD}.pid"
     fi
 
     return \$ret
@@ -579,7 +603,7 @@ do_stop () {
     if [ "\$#" -eq 0 ]; then
         log_action_msg "Stopping CloudBD disks"
         local socket
-        for socket in \$(ls \$RUNSTATE_D/*:0.socket 2>/dev/null); do
+        for socket in \$(ls \$RUNSTATE_D/*.socket 2>/dev/null | grep -E -v '[[:alnum:]_-]+:[[:alnum:]_-]+:[1-9][[:digit:]]*.socket'); do
             get_cbd_from_socket "\$socket" || continue
             handle_stop "\$CBD"
             case \$? in

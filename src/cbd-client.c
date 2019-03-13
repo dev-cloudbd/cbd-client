@@ -282,8 +282,8 @@ void negotiate(int *sockp, uint64_t *rsize64, uint16_t *flags, char* name, uint3
     {
         if (magic == cliserv_magic)
         {
-            err(
-                    "It looks like you're trying to connect to an oldstyle server. This is no longer supported since nbd 3.10.");
+            err("It looks like you're trying to connect to an oldstyle server. "
+                "This is no longer supported since nbd 3.10.");
         }
     }
     printf(".");
@@ -456,56 +456,6 @@ bool get_from_config(char* cfgname, char** nbddev_ptr, char** device_name_ptr)
     *device_name_ptr = strdup(cbd_ptr);
     retval = true;
 
-    /*
-    // get third field
-    do
-    {
-        opt_ptr = strsep(&line, " \t");
-    } while(opt_ptr && strlen(opt_ptr) == 0);
-
-    // third field is the options field, currently no options for client, a comma-separated field of options
-    if (!opt_ptr)
-        goto out; // not an error, options field is not required
-
-    do
-    {
-        if (!strncmp(opt_ptr, "connections=", 12))
-        {
-            //
-            strtol(opt_ptr + 12, &opt_ptr, 0);
-            goto next;
-        }
-        if (!strncmp(opt_ptr, "block_bufferss=", 3))
-        {
-            *bs = (int) strtol(opt_ptr + 3, &opt_ptr, 0);
-            goto next;
-        }
-        if (!strncmp(opt_ptr, "timeout=", 8))
-        {
-            *timeout = (int) strtol(opt_ptr + 8, &opt_ptr, 0);
-            goto next;
-        }
-        if (!strncmp(opt_ptr, "noauto", 6))
-        {
-            opt_ptr += 6;
-            goto next;
-        }
-        // skip unknown options, with a warning unless they start with a '_'
-        l = strcspn(opt_ptr, ",");
-        if (*opt_ptr != '_')
-        {
-            char *s = strndup(opt_ptr, l);
-            fprintf(stderr, "Warning: unknown option '%s' found in cbdtab file", s);
-            free(s);
-        }
-        opt_ptr += l;
-        next: if (*opt_ptr == ',')
-        {
-            opt_ptr++;
-        }
-    } while (strlen(opt_ptr) > 0);
-    */
-
     out:
     if (data != NULL)
     {
@@ -573,12 +523,12 @@ void set_timeout(int nbd, int timeout)
     }
 }
 
-void finish_sock(int sock, int nbd)
+void finish_sock(int sock, int nbd, int secondary)
 {
     if (ioctl(nbd, NBD_SET_SOCK, sock) < 0)
     {
-        if (errno == EBUSY)
-            err("Kernel doesn't support multiple connections\n");
+        if (errno == EBUSY && secondary)
+            err_nonfatal("Kernel doesn't support multiple connections.\n");
         else
             err("Ioctl NBD_SET_SOCK failed: %m\n");
     }
@@ -774,7 +724,6 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
 
         negotiate(&sock, &size64, &flags, nbddev + 5, needed_flags, cflags, opts);
-        finish_sock(sock, nbd);
 
         if (i == 0)
         {
@@ -783,6 +732,8 @@ int main(int argc, char *argv[])
             setsizes(nbd, size64, blocksize, flags);
             set_timeout(nbd, timeout);
         }
+
+        finish_sock(sock, nbd, i > 0);
     }
 
     mlockall(MCL_CURRENT | MCL_FUTURE);
