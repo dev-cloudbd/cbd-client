@@ -175,7 +175,7 @@ parse_opts () {
             CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=64 cache_buffers=50 threads=2 rest_threads=4"
             ;;
         threads|block_buffers|cache_buffers|swath_buffers|rest_threads| \
-        asrestly_header_size|asrestly_connect_timeout_sec|asrestly_dead_peer_timeout_sec| \
+        asrestly_header_size|asrestly_connect_timeout_sec| \
         asrestly_total_rest_timeout_sec|asrestly_rest_attempt_timeout_sec)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
@@ -190,7 +190,7 @@ parse_opts () {
             CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
             ;;
         connections|block_timeout|swath_timeout|rand_block_timeout| \
-        asrestly_ssl_verify_peer| \
+        asrestly_ssl_verify_peer|asrestly_dead_peer_timeout_sec| \
         asrestly_base_slowdown_delay_ms|asrestly_max_slowdown_delay_ms| \
         asrestly_recv_buffer_size|asrestly_send_buffer_size)
             if [ -z "\$value" ]; then

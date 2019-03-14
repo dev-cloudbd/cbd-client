@@ -33,8 +33,15 @@ remote block devices over a TCP/IP network.
 %make_install
 ln -s /dev/null %{buildroot}%{_unitdir}/cbddisks.service
 
-%post
+%post -p /bin/bash
 %systemd_post %{S:1}
+if [ $1 -eq 2 ]; then
+  for sock in /var/run/cloudbd/*.socket; do
+    if expr "x$sock" : "^x/var/run/cloudbd/[[:alnum:]_-]\+:[[:alnum:]_-]\+\.socket\$" >/dev/null 2>&1; then
+      mv "$sock" "${sock%%\.socket}:0.socket"
+    fi
+  done
+fi
 
 %preun
 %systemd_preun %{S:1}

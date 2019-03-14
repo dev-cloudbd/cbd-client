@@ -13,9 +13,15 @@ Requires:       cloudbd >= 2.2.4, cbdkit >= 1.4.4
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
 /usr/bin/getent passwd cloudbd > /dev/null || /usr/sbin/useradd -r -g cloudbd cloudbd
 
-%post
+%post -p /bin/bash
 if [ $1 -eq 1 ]; then
   chkconfig --add cbddisks
+elif [ $1 -eq 2 ]; then
+  for sock in /var/run/cloudbd/*.socket; do
+    if expr "x$sock" : "^x/var/run/cloudbd/[[:alnum:]_-]\+:[[:alnum:]_-]\+\.socket\$" >/dev/null 2>&1; then
+      mv "$sock" "${sock%%\.socket}:0.socket"
+    fi
+  done
 fi
 
 %description 
