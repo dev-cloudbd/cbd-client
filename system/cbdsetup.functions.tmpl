@@ -167,12 +167,12 @@ parse_opts () {
         highperf|highmem)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=131072
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 connection=160 cache_buffers=24 threads=4 rest_threads=12"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 connections=160 cache_buffers=24 threads=4 rest_threads=12"
             ;;
         gluster)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=16384
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connection=62 cache_buffers=50 threads=2 rest_threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=62 cache_buffers=50 threads=2 rest_threads=4"
             ;;
         connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout|rest_threads|rand_block_timeout| \
         asrestly_ssl_verify_peer|asrestly_header_size|asrestly_connect_timeout_sec|asrestly_dead_peer_timeout_sec| \
@@ -350,8 +350,8 @@ handle_start () {
 
         # Start the server
         local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C \$CBDKIT_SOCKETS -f \$CBD /dev/\$NBD"
-        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP '-U \${SOCKET}:'{0..\$((CBDKIT_SOCKETS-1))}.socket -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
-        if ! eval \$SERVER_CMD --run "\$CLIENT_CMD"; then
+        local SERVER_CMD="$sbindir/cbdkit -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP \$(eval echo \'-U \${SOCKET}:\'{0..\$((CBDKIT_SOCKETS-1))}.socket) -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
+        if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
             ERRMSG="cbdkit returned with error"
             return 1
         fi
