@@ -162,21 +162,21 @@ parse_opts () {
         defaults)
             CBDKIT_BUFFERS=64
             DM_READAHEAD_KB=65536
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 connections=62 cache_buffers=16 threads=2 rest_threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 connections=64 cache_buffers=16 threads=2 rest_threads=4"
             ;;
         highperf|highmem)
             CBDKIT_BUFFERS=128
-            DM_READAHEAD_KB=131072
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 connections=160 cache_buffers=24 threads=4 rest_threads=12"
+            DM_READAHEAD_KB=65536
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=192 connections=148 cache_buffers=24 threads=4 rest_threads=12"
             ;;
         gluster)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=16384
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=62 cache_buffers=50 threads=2 rest_threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=64 cache_buffers=50 threads=2 rest_threads=4"
             ;;
-        connections|threads|block_buffers|cache_buffers|block_timeout|swath_buffers|swath_timeout|rest_threads|rand_block_timeout| \
-        asrestly_ssl_verify_peer|asrestly_header_size|asrestly_connect_timeout_sec|asrestly_dead_peer_timeout_sec| \
-        asrestly_total_rest_timeout_sec|asrestly_rest_attempt_timeout_sec|asrestly_base_slowdown_delay_ms|asrestly_max_slowdown_delay_ms)
+        threads|block_buffers|cache_buffers|swath_buffers|rest_threads| \
+        asrestly_header_size|asrestly_connect_timeout_sec|asrestly_dead_peer_timeout_sec| \
+        asrestly_total_rest_timeout_sec|asrestly_rest_attempt_timeout_sec)
             if [ -z "\$value" ]; then
                 ERRMSG="no value for option \$param"
                 return 1
@@ -185,6 +185,22 @@ parse_opts () {
                 return 1
             elif [ "\$value" -le 0 ]; then
                 ERRMSG="option \$param must be greater than 0"
+                return 1
+            fi
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
+            ;;
+        connections|block_timeout|swath_timeout|rand_block_timeout| \
+        asrestly_ssl_verify_peer| \
+        asrestly_base_slowdown_delay_ms|asrestly_max_slowdown_delay_ms| \
+        asrestly_recv_buffer_size|asrestly_send_buffer_size)
+            if [ -z "\$value" ]; then
+                ERRMSG="no value for option \$param"
+                return 1
+            elif ! expr "x\$value" : 'x[[:digit:]]\+\$' >/dev/null; then
+                ERRMSG="bad value for option \$param"
+                return 1
+            elif [ "\$value" -lt 0 ]; then
+                ERRMSG="option \$param must be greater than or equal to 0"
                 return 1
             fi
             CBDKIT_PARAMS="\$CBDKIT_PARAMS \$param=\$value"
