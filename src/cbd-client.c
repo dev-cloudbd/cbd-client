@@ -32,6 +32,7 @@
 #include <sys/un.h>
 #include <sys/mman.h>
 
+#include <inttypes.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -125,6 +126,71 @@ int openunix(const char *device_name, int socket_id)
         return -1;
     }
     return sock;
+}
+
+void send_request(int sock, uint32_t opt, ssize_t datasize, void* data) {
+    struct {
+        uint64_t magic;
+        uint32_t opt;
+        uint32_t datasize;
+    } __attribute__((packed)) header = {
+        ntohll(opts_magic),
+        ntohl(opt),
+        ntohl(datasize),
+    };
+    if(datasize < 0) {
+        datasize = strlen((char*)data);
+        header.datasize = htonl(datasize);
+    }
+    writeit(sock, &header, sizeof(header));
+    if(data != NULL) {
+        writeit(sock, data, datasize);
+    }
+}
+
+void send_command(int sock, uint32_t type, uint64_t handle, uint64_t from, ssize_t datasize, void * data) {
+    struct nbd_request request = {
+        .magic = ntohl(NBD_REQUEST_MAGIC),
+        .type = ntohl(type),
+        .from = ntohll(from)
+    };
+
+    if (datasize < 0) {
+        datasize = strlen((char*)data);
+        request.len = htonl(datasize);
+    }
+
+    memcpy(request.handle, &handle, sizeof(handle));
+    writeit(sock, &request, sizeof(request));
+    if (data != NULL) {
+        writeit(sock, data, datasize);
+    }
+}
+
+struct reply {
+    uint64_t magic;
+    uint32_t opt;
+    uint32_t reply_type;
+    uint32_t datasize;
+    char data[];
+} __attribute__((packed));
+
+struct reply* read_reply(int sock) {
+    struct reply *retval = malloc(sizeof(struct reply));
+    readit(sock, retval, sizeof(*retval));
+    retval->magic = ntohll(retval->magic);
+    retval->opt = ntohl(retval->opt);
+    retval->reply_type = ntohl(retval->reply_type);
+    retval->datasize = ntohl(retval->datasize);
+    if (retval->magic != rep_magic) {
+        fprintf(stderr, "E: received invalid negotiation magic %" PRIu64 " (expected %" PRIu64 ")", retval->magic, rep_magic);
+        exit(EXIT_FAILURE);
+    }
+    if (retval->datasize > 0) {
+        retval = realloc(retval, sizeof(struct reply) + retval->datasize);
+        readit(sock, &(retval->data), retval->datasize);
+    }
+    return retval;
 }
 
 void ask_list(int sock)
@@ -236,28 +302,7 @@ void ask_list(int sock)
             }
         }
     } while (reptype != NBD_REP_ACK);
-    opt = htonl(NBD_OPT_ABORT);
-    len = htonl(0);
-    magic = htonll(opts_magic);
-    if (write(sock, &magic, sizeof(magic)) < 0)
-        err("Failed/2.2: %m");
-    if (write(sock, &opt, sizeof(opt)) < 0)
-        err("Failed writing abort");
-    if (write(sock, &len, sizeof(len)) < 0)
-        err("Failed writing length");
-    if (read(sock, &magic, sizeof(magic)) < 0)
-        err("Reading magic from server: %m");
-    if (read(sock, &opt_server, sizeof(opt_server)) < 0)
-        err("Reading option: %m");
-    if (read(sock, &reptype, sizeof(reptype)) < 0)
-        err("Reading reply from server: %m");
-    if (read(sock, &len, sizeof(len)) < 0)
-        err("Reading length from server: %m");
-    magic = ntohll(magic);
-    len = ntohl(len);
-    reptype = ntohl(reptype);
-    if (magic != rep_magic)
-        err("Not enough magic from server");
+    send_request(sock, NBD_OPT_ABORT, 0, NULL);
 }
 
 void negotiate(int *sockp, uint64_t *rsize64, uint16_t *flags, char* name, uint32_t needed_flags,
@@ -528,7 +573,11 @@ void finish_sock(int sock, int nbd, int secondary)
     if (ioctl(nbd, NBD_SET_SOCK, sock) < 0)
     {
         if (errno == EBUSY && secondary)
+        {
             err_nonfatal("Kernel doesn't support multiple connections.\n");
+            send_command(sock, NBD_CMD_DISC, 0x01UL, 0, 0, NULL);
+            close(sock);
+        }
         else
             err("Ioctl NBD_SET_SOCK failed: %m\n");
     }

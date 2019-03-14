@@ -111,3 +111,30 @@ void readit(int f, void *buf, size_t len) {
 		}
 	}
 }
+
+/**
+ * Write data from a buffer into a filedescriptor
+ *
+ * @param f a file descriptor
+ * @param buf a buffer containing data
+ * @param len the number of bytes to be written
+ * @return 0 on success, or -1 if the socket was closed
+ **/
+int writeit(int f, void *buf, size_t len) {
+    ssize_t res;
+    while (len > 0) {
+        if ((res = write(f, buf, len)) <= 0) {
+            switch(errno) {
+                case EAGAIN:
+                    break;
+                default:
+                    err_nonfatal("Send failed: %m");
+                    return -1;
+            }
+        }
+        len -= res;
+        buf += res;
+    }
+    return 0;
+}
+
