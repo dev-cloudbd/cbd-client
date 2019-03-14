@@ -142,10 +142,8 @@ void send_request(int sock, uint32_t opt, ssize_t datasize, void* data) {
         datasize = strlen((char*)data);
         header.datasize = htonl(datasize);
     }
-    writeit(sock, &header, sizeof(header));
-    if(data != NULL) {
+    if (writeit(sock, &header, sizeof(header)) >= 0 && data != NULL)
         writeit(sock, data, datasize);
-    }
 }
 
 void send_command(int sock, uint32_t type, uint64_t handle, uint64_t from, ssize_t datasize, void * data) {

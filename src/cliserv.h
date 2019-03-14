@@ -54,7 +54,7 @@ uint64_t ntohll(uint64_t a);
 #endif
 
 void readit(int f, void *buf, size_t len);
-void writeit(int f, void *buf, size_t len);
+int writeit(int f, void *buf, size_t len);
 
 /* Options that the client can select to the server */
 #define NBD_OPT_EXPORT_NAME	(1)	/** Client wants to select a named export (is followed by name of export) */
