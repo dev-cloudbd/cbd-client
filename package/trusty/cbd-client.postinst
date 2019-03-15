@@ -34,14 +34,14 @@ case "$1" in
         
         # Multisock support
         if vercomp "$2" "4.0.10"; then
-            echo "Updating active sockets names to multisock supported names"
-            pushd /var/run/cloudbd
+            echo "4.0.10: Updating active sockets to multisock supported names"
+            pushd /var/run/cloudbd >/dev/null
             for sock in *.socket; do
                 if expr "x$sock" : "x[[:alnum:]_-]\+:[[:alnum:]_-]\+\.socket\$" >/dev/null 2>&1; then
                     mv "$sock" "${sock%%.socket}:0.socket"
                 fi
             done
-            popd
+            popd >/dev/null
         fi
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
