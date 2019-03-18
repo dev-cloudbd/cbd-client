@@ -33,7 +33,9 @@ fi
 [ -x $sbindir/cbdkit ] || exit 0
 [ -x $sbindir/cbd-client ] || exit 0
 [ -x $bindir/cloudbd ] || exit 0
-[ -x $sbindir/blkdeactivate] && BLKDEACTIVATE=yes
+if [ -x $sbindir/blkdeactivate ]; then
+    BLKDEACTIVATE="yes"
+fi
 
 # Parse cbdtab the same way the cbdsetup systemd generator does and print warnings when 
 # we would skip a cbdtab entry.
@@ -581,7 +583,7 @@ handle_stop () {
 
     # Stop all services using device cleanly before yanking the plug
     if [ "x\$BLKDEACTIVATE" = "xyes" ]; then
-        /sbin/blkdeactivate -u -l wholevg,retry "/dev/mapper/\$CBD"
+        /sbin/blkdeactivate -u -l wholevg,retry "/dev/mapper/\$CBD" >/dev/null 2>&1
     fi
 
     local timeout=0
@@ -670,7 +672,7 @@ handle_stop () {
         ret=1
         ERRMSG="failed to stop device mapper"
     else
-        rm -f "\$RUNSTATE_D/\${CBD}.socket" \$RUNSTATE_D/\${CBD}:*.socket"
+        rm -f "\$RUNSTATE_D/\${CBD}.socket" \$RUNSTATE_D/\${CBD}:*.socket
     fi
 
     return \$ret

@@ -70,16 +70,18 @@ main () {
                 disk="\${disk##*/}"
                 disk="\${disk%":0.socket"}"
 
-                if ! systemctl status "cbdsetup@\${disk}.service" >/dev/null 2>&1; then
-                    log_action_cont_msg "Stopping \$disk (already stopped)"
-                    log_action_end_msg 0
-                    continue
-                fi
-
                 if [ "x\$FORCE_STOP" = "x" ] || [ "x\$FORCE_STOP" = "xno" ] && ! check_not_busy "\${disk}"; then
                     log_action_cont_msg "Stopping \$disk (device busy)"
                     log_action_end_msg 1
                     overall=1
+                    continue
+                fi
+
+                # If systemd is not managing our disk, fall back to a manual stop to allow cleanup of dm resources
+                if ! systemctl status "cbdsetup@\${disk}.service" >/dev/null 2>&1; then
+                    if ! do_stop "\$disk"; then
+                        overall=1
+                    fi
                     continue
                 fi
 
@@ -101,16 +103,18 @@ main () {
             for cbd in \$cbds; do
                 local status
 
-                if ! systemctl status "cbdsetup@\${cbd}.service" >/dev/null 2>&1; then
-                    log_action_cont_msg "Stopping \$cbd (already stopped)"
-                    log_action_end_msg 0
-                    continue
-                fi
-
-                if ! check_not_busy "\${cbd}"; then
+                if [ "x\$FORCE_STOP" = "x" ] || [ "x\$FORCE_STOP" = "xno" ] && ! check_not_busy "\${cbd}"; then
                     log_action_cont_msg "Stopping \$cbd (device busy)"
                     log_action_end_msg 1
                     overall=1
+                    continue
+                fi
+
+                # If systemd is not managing our disk, fall back to a manual stop to allow cleanup of dm resources
+                if ! systemctl status "cbdsetup@\${cbd}.service" >/dev/null 2>&1; then
+                    if ! do_stop "\$cbd"; then
+                        overall=1
+                    fi
                     continue
                 fi
 
@@ -124,7 +128,7 @@ main () {
                     log_action_end_msg 0
                 fi
             done
-            exit $overall
+            exit \$overall
         fi
     else
         do_stop \$cbds
