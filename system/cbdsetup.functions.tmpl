@@ -20,17 +20,20 @@ CBDDISKS_GROUP="\${CBDDISKS_GROUP-"cloudbd"}"
 CBDDISKS_OP_TIMEOUT="\${CBDDISKS_OP_TIMEOUT-"180"}"
 
 CBDDISKS_START_TIMEOUT="\${CBDDISKS_START_TIMEOUT-"30"}"
-CBDDISKS_STOP_TIMEOUT="\${CBDDISKS_STOP_TIMEOUT-"10"}"
 
 # Check for systemd
 if readlink -f /sbin/init | grep -qE "systemd"; then
     IS_SYSTEMD="yes"
+    CBDDISKS_STOP_TIMEOUT="\${CBDDISKS_STOP_TIMEOUT-"10"}"
+else
+    CBDDISKS_STOP_TIMEOUT="\${CBDDISKS_STOP_TIMEOUT-"30"}"
 fi
 
 # Sanity check
 [ -x $sbindir/cbdkit ] || exit 0
 [ -x $sbindir/cbd-client ] || exit 0
 [ -x $bindir/cloudbd ] || exit 0
+[ -x $sbindir/blkdeactivate] && BLKDEACTIVATE=yes
 
 # Parse cbdtab the same way the cbdsetup systemd generator does and print warnings when 
 # we would skip a cbdtab entry.
@@ -67,6 +70,25 @@ check_systemd_cbdtab () {
     done  <<- EOF
 	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
 	EOF
+}
+
+# Check if device mapper has open refcounts
+# int check_not_busy (string cbd)
+check_not_busy () {
+    local dmname="\$(dmsetup info -c --noheadings -o blkdevname \$1 2>/dev/null)"
+
+    # Check for a busy device_mapper disk and FORCE_STOP option
+    if [ -n "\$dmname" ]; then
+        opencount="\$(dmsetup info -c --noheadings -o open "\$1" 2>/dev/null)"
+        if [ -z "\$opencount" ]; then
+            ERRMSG="unable to query opencount"
+            return 1
+        elif [ "\$opencount" -ne 0 ]; then
+            ERRMSG="device busy"
+            return 1
+        fi
+    fi
+    return 0
 }
 
 # Parse and validate cbd value from socket path
@@ -308,6 +330,7 @@ get_cbdtab_line_by_cbd () {
 #     1: error
 #     2: ignored
 #     3: already running
+# protected by an flock on \$RUNSTATE_D/<CBD>.lock
 handle_start () {
     # Validate inputs
     # ERRMSG set by parse funcs
@@ -331,6 +354,7 @@ handle_start () {
     fi
 
     local PIDFILE="\$RUNSTATE_D/\${CBD}.pid"
+    local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
     if ! cbd-client -l "\$CBD" >/dev/null 2>&1; then
         # Start the device server
         # Make sure NBD device exists
@@ -353,7 +377,12 @@ handle_start () {
 
         local SOCKET="\$RUNSTATE_D/\${CBD}"
         local UDEV="\$RUNSTATE_D/\${NBD}.udev"
-        local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
+
+        local oldpid="\$(cat "\$PIDFILE" 2>/dev/null)"
+        if [ -n "\$oldpid" ] && ps -s "\$oldpid" -o comm --noheading | grep -e cbdkit -e cbd-client -q; then
+            ERRMSG="device is shutting down"
+            return 1
+        fi
 
         # Clean out any previous driver run files
         rm -f "\${SOCKET}.socket" \${SOCKET}:*.socket "\$PIDFILE" "\$UDEV" "\$STOPPING"
@@ -371,6 +400,9 @@ handle_start () {
             ERRMSG="cbdkit returned with error"
             return 1
         fi
+    elif [ -f "\$STOPPING" ]; then
+        ERRMSG="device is shutting down"
+        return 1
     else
         # Server is already active, kick udev to get device mapper started
         udevadm trigger "/dev/\$NBD"
@@ -437,6 +469,15 @@ do_start () {
                 continue
             fi
 
+            local lockfile="\$RUNSTATE_D/\${cbd}.lock"
+            exec {fd}<>"\$lockfile"
+            if ! flock \$fd; then
+                log_action_cont_msg "Starting \$CBD (failed to acquire lock)"
+                log_action_end_msg 1
+                ret=1
+                continue
+            fi
+
             handle_start "\$nbd" "\$cbd" "\$opts"
             case \$? in
                 0) log_action_cont_msg "Starting \$CBD (started)"
@@ -461,6 +502,7 @@ do_start () {
             eval "local \$nbd=1"
             eval "local \$cbdx=1"
 
+            flock -u \$fd
         done <<- EOF
 	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
 	EOF
@@ -472,6 +514,14 @@ do_start () {
         for cbd in "\$@"; do
             if ! get_cbdtab_line_by_cbd "\$cbd"; then
                 log_failure_msg "\$cbd (\$ERRMSG)"
+                ret=1
+                continue
+            fi
+
+            local lockfile="\$RUNSTATE_D/\${CBD}.lock"
+            exec {fd}<>"\$lockfile"
+            if ! flock \$fd; then
+                log_failure_msg "Starting \$CBD (failed to acquire lock)"
                 ret=1
                 continue
             fi
@@ -491,13 +541,16 @@ do_start () {
                    ret=1
                    ;;
             esac
+
+            flock -u \$fd
         done
     fi
 
     return \$ret
 }
 
-#int handle_stop (string cbd)
+# int handle_stop (string cbd)
+# protected by an flock on \$RUNSTATE_D/<CBD>.lock
 handle_stop () {
     # Validate input
     parse_cbd "\$1" || return 1 # ERRMSG set by parse func
@@ -527,6 +580,10 @@ handle_stop () {
     fi
 
     # Stop all services using device cleanly before yanking the plug
+    if [ "x\$BLKDEACTIVATE" = "xyes" ]; then
+        /sbin/blkdeactivate -u -l wholevg,retry "/dev/mapper/\$CBD"
+    fi
+
     local timeout=0
     while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
         local kname type mnt
@@ -569,7 +626,8 @@ handle_stop () {
 
     # Disconnect cloudbd from nbd
     if [ -n "\$nbd" ]; then
-        local pid="\$(pgrep -F "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null)"
+        local pid="\$(cat "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null)"
+
         cbd-client -d "/dev/\$NBD" >/dev/null 2>&1 || true
 
         if [ -z "\$pid" ]; then
@@ -583,15 +641,23 @@ handle_stop () {
                 ret=1
             fi
         else
-            while ps "\$pid" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
+            # Check for any processes within the session group in case of orphaned children.
+            # Normally all of these processes will stop cleanly as part of the cbd-client -d
+            # chain of events. If the parent to the server/client is killed before its children
+            # we detect this and manually TERM the children.
+            while ps -s "\$pid" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
+                ps "\$pid" >/dev/null 2>&1 || kill -TERM "-\$pid" # if parent pid of session is dead, TERM children
                 sleep 1
                 timeout=\$(( timeout + 1 ))
             done
 
-            if ps "\$pid" >/dev/null 2>&1; then
+            if ps -s "\$pid" >/dev/null 2>&1; then
                 ERRMSG="failed to stop server"
+                kill -9 "-\$pid" # final attempt to really stop all children
                 ret=1
             fi
+
+            rm -f "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null
         fi
 
         # Kick udev
@@ -604,7 +670,7 @@ handle_stop () {
         ret=1
         ERRMSG="failed to stop device mapper"
     else
-        rm -f "\$RUNSTATE_D/\${CBD}.socket" \$RUNSTATE_D/\${CBD}:*.socket "\$RUNSTATE_D/\${CBD}.pid"
+        rm -f "\$RUNSTATE_D/\${CBD}.socket" \$RUNSTATE_D/\${CBD}:*.socket"
     fi
 
     return \$ret
@@ -621,6 +687,16 @@ do_stop () {
         local socket
         for socket in \$(ls \$RUNSTATE_D/*.socket 2>/dev/null | grep -E -v '[[:alnum:]_-]+:[[:alnum:]_-]+:[1-9][[:digit:]]*.socket'); do
             get_cbd_from_socket "\$socket" || continue
+
+            local lockfile="\$RUNSTATE_D/\${CBD}.lock"
+            exec {fd}<>"\$lockfile"
+            if ! flock \$fd; then
+                log_action_cont_msg "Stopping \$CBD (failed to acquire lock)"
+                log_action_end_msg 1
+                ret=1
+                continue
+            fi
+
             handle_stop "\$CBD"
             case \$? in
                 0) log_action_cont_msg "Stopping \$CBD (stopped)"
@@ -638,6 +714,8 @@ do_stop () {
                    ret=1
                    ;;
             esac
+
+            flock -u \$fd
         done
         log_action_cont_msg "CloudBD disks stopped"
         log_action_end_msg \$ret
@@ -646,6 +724,14 @@ do_stop () {
         for cbd in "\$@"; do
             if ! parse_cbd "\$cbd"; then
                 log_failure_msg "Stopping \$cbd (\$ERRMSG)"
+                ret=1
+                continue
+            fi
+
+            local lockfile="\$RUNSTATE_D/\${CBD}.lock"
+            exec {fd}<>"\$lockfile"
+            if ! flock \$fd; then
+                log_failure_msg "Stopping \$CBD (failed to acquire lock)"
                 ret=1
                 continue
             fi
@@ -663,6 +749,8 @@ do_stop () {
                    ret=1
                    ;;
             esac
+
+            flock -u \$fd
         done
     fi
 

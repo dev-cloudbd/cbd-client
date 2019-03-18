@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 . $libdir/cbdsetup/cbdsetup.functions
 
@@ -46,11 +46,11 @@ main () {
         esac
     done
 
-    if [ "x\$all" = "xyes" ] && [ ! "x\$cbds" = "x" ]; then
+    if [ "x\$all" = "xyes" ] && [ "x\$cbds" != "x" ]; then
         >&2 echo "\$0: error - all disks option specified, no CBD disk arguments expected"
         >&2 echo "Try '\$0 --help' for more info"
         exit 1
-    elif [ ! "x\$all" = "xyes" ] && [ "x\$cbds" = "x" ]; then
+    elif [ "x\$all" != "xyes" ] && [ "x\$cbds" = "x" ]; then
         >&2 echo "\$0: error - no disks specified"
         >&2 echo "Try '\$0 --help' for more info"
         exit 1
@@ -61,8 +61,75 @@ main () {
         exit 1
     fi
 
-    do_stop \$cbds
-    exit \$?
+    if [ "x\$IS_SYSTEMD" = "xyes" ]; then
+        if [ "x\$all" = "xyes" ]; then
+            log_action_msg "Stopping CloudBD disks"
+
+            local disk status overall=0
+            for disk in \$(ls /var/run/cloudbd/*:0.socket 2>/dev/null); do
+                disk="\${disk##*/}"
+                disk="\${disk%":0.socket"}"
+
+                if ! systemctl status "cbdsetup@\${disk}.service" >/dev/null 2>&1; then
+                    log_action_cont_msg "Stopping \$disk (already stopped)"
+                    log_action_end_msg 0
+                    continue
+                fi
+
+                if [ "x\$FORCE_STOP" = "x" ] || [ "x\$FORCE_STOP" = "xno" ] && ! check_not_busy "\${disk}"; then
+                    log_action_cont_msg "Stopping \$disk (device busy)"
+                    log_action_end_msg 1
+                    overall=1
+                    continue
+                fi
+
+                systemctl stop "cbdsetup@\${disk}.service" 2>/dev/null
+                status=\$?
+                log_action_cont_msg "\$(systemctl status -o cat "cbdsetup@\${disk}.service" | grep -m1 "Stopping \${disk}.*")"
+                if [ "\$status" -ne "0" ]; then
+                    log_action_end_msg 1
+                    overall=1
+                else
+                    log_action_end_msg 0
+                fi
+            done
+            log_action_cont_msg "CloudBD disks stopped"
+            log_action_end_msg \$overall
+            exit \$overall
+        else
+            local overall=0
+            for cbd in \$cbds; do
+                local status
+
+                if ! systemctl status "cbdsetup@\${cbd}.service" >/dev/null 2>&1; then
+                    log_action_cont_msg "Stopping \$cbd (already stopped)"
+                    log_action_end_msg 0
+                    continue
+                fi
+
+                if ! check_not_busy "\${cbd}"; then
+                    log_action_cont_msg "Stopping \$cbd (device busy)"
+                    log_action_end_msg 1
+                    overall=1
+                    continue
+                fi
+
+                systemctl stop "cbdsetup@\${cbd}.service" 2>/dev/null
+                status=\$?
+                log_action_cont_msg "\$(systemctl status -o cat "cbdsetup@\${cbd}.service" | grep -m1 "Stopping \${cbd}.*")"
+                if [ "\$status" -ne "0" ]; then
+                    log_action_end_msg 1
+                    overall=1
+                else
+                    log_action_end_msg 0
+                fi
+            done
+            exit $overall
+        fi
+    else
+        do_stop \$cbds
+        exit \$?
+    fi
 }
 
 main "\$@"

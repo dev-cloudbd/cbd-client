@@ -2,8 +2,21 @@
 
 . $libdir/cbdsetup/cbdsetup.functions
 
-FORCE_START="yes"
-do_start \$@
-exit \$?
+case \$1 in
+start)
+        FORCE_START="yes"
+        do_start "\$2"
+        exit \$?
+        ;;
+stop)
+        FORCE_STOP="yes"
+        do_stop "\$2"
+        exit \$?
+        ;;
+*)
+        echo "Unrecognized command '\$1'" 1>&2
+        exit 1
+        ;;
+esac
 
 
