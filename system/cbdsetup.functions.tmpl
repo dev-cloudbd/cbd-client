@@ -186,7 +186,7 @@ parse_opts () {
         defaults)
             CBDKIT_BUFFERS=64
             DM_READAHEAD_KB=65536
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 connections=64 cache_buffers=16 threads=2 rest_threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=52 connections=64 cache_buffers=16 threads=3 rest_threads=4"
             ;;
         highperf|highmem)
             CBDKIT_BUFFERS=128
@@ -196,7 +196,7 @@ parse_opts () {
         gluster)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=16384
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=64 cache_buffers=50 threads=2 rest_threads=4"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=64 cache_buffers=50 threads=3 rest_threads=3"
             ;;
         threads|block_buffers|cache_buffers|swath_buffers|rest_threads| \
         asrestly_header_size|asrestly_connect_timeout_sec| \

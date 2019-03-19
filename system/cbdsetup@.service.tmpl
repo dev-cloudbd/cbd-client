@@ -5,7 +5,7 @@ SourcePath=@sysconfdir@/cloudbd/cbdtab
 DefaultDependencies=no
 Requires=network-online.target
 Wants=remote-fs-pre.target
-After=network-online.target local-fs.target cbdsetup-pre.target
+After=network-online.target local-fs.target cbdsetup-pre.target blk-availability.service
 Before=remote-fs-pre.target cbdsetup.target
 
 [Service]
