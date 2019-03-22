@@ -101,6 +101,7 @@ int check_conn(char* devname, int do_print)
 int openunix(const char *device_name, int socket_id)
 {
     int sock;
+    int bufsize = 1024*1024;
     struct sockaddr_un un_addr;
     memset(&un_addr, 0, sizeof(un_addr));
 
@@ -118,6 +119,14 @@ int openunix(const char *device_name, int socket_id)
         err_nonfatal("SOCKET failed");
         return -1;
     };
+
+    if (setsockopt (sock, SOL_SOCKET, SO_SNDBUFFORCE, &bufsize, sizeof bufsize) == -1) {
+        err_nonfatal("SO_SNDBUFFORCE");
+    }
+
+    if (setsockopt (sock, SOL_SOCKET, SO_RCVBUFFORCE, &bufsize, sizeof bufsize) == -1) {
+        err_nonfatal("SO_RCVBUFFORCE");
+    }
 
     if (connect(sock, &un_addr, sizeof(un_addr)) == -1)
     {
