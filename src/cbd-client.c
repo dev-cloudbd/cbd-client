@@ -101,7 +101,7 @@ int check_conn(char* devname, int do_print)
 int openunix(const char *device_name, int socket_id)
 {
     int sock;
-    int bufsize = 1024*1024;
+    int bufsize = 514*1024;
     struct sockaddr_un un_addr;
     memset(&un_addr, 0, sizeof(un_addr));
 
