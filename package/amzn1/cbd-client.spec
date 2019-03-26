@@ -16,12 +16,13 @@ Requires:       cloudbd >= 2.2.4, cbdkit >= 1.4.4
 %post -p /bin/bash
 if [ $1 -eq 1 ]; then
   chkconfig --add cbddisks
-elif [ $1 -eq 2 ]; then
-  for sock in /var/run/cloudbd/*.socket; do
-    if expr "x$sock" : "^x/var/run/cloudbd/[[:alnum:]_-]\+:[[:alnum:]_-]\+\.socket\$" >/dev/null 2>&1; then
-      mv "$sock" "${sock%%\.socket}:0.socket"
-    fi
-  done
+# Upgrade script for Multisock no longer needed but left as example
+#elif [ $1 -eq 2 ]; then
+#  for sock in /var/run/cloudbd/*.socket; do
+#    if expr "x$sock" : "^x/var/run/cloudbd/[[:alnum:]_-]\+:[[:alnum:]_-]\+\.socket\$" >/dev/null 2>&1; then
+#      mv "$sock" "${sock%%\.socket}:0.socket"
+#    fi
+#  done
 fi
 
 %description 

@@ -66,9 +66,9 @@ main () {
             log_action_msg "Stopping CloudBD disks"
 
             local disk status overall=0
-            for disk in \$(ls /var/run/cloudbd/*:0.socket 2>/dev/null); do
+            for disk in \$(ls /var/run/cloudbd/*.socket 2>/dev/null); do
                 disk="\${disk##*/}"
-                disk="\${disk%":0.socket"}"
+                disk="\${disk%".socket"}"
 
                 if [ "x\$FORCE_STOP" = "x" ] || [ "x\$FORCE_STOP" = "xno" ] && ! check_not_busy "\${disk}"; then
                     log_action_cont_msg "Stopping \$disk (device busy)"

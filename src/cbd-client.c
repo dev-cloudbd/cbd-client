@@ -98,7 +98,7 @@ int check_conn(char* devname, int do_print)
     return 0;
 }
 
-int openunix(const char *device_name, int socket_id)
+int openunix(const char *device_name)
 {
     int sock;
     int bufsize = 1026*1024;
@@ -108,7 +108,7 @@ int openunix(const char *device_name, int socket_id)
     un_addr.sun_family = AF_UNIX;
 
     // unix domain socket path = "RUNSTATEDIR/cloudbd/<remote_id:device_id>.socket"
-    if (snprintf(un_addr.sun_path, sizeof un_addr.sun_path, RUNSTATEDIR "/cloudbd/%s:%d.socket", device_name, socket_id) >= sizeof un_addr.sun_path)
+    if (snprintf(un_addr.sun_path, sizeof un_addr.sun_path, RUNSTATEDIR "/cloudbd/%s.socket", device_name) >= sizeof un_addr.sun_path)
     {
         err_nonfatal("UNIX socket path too long");
         return -1;
@@ -775,7 +775,7 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < num_connections; i++)
     {
-        sock = openunix(device_name, i);
+        sock = openunix(device_name);
         if (sock < 0)
             exit(EXIT_FAILURE);
 
