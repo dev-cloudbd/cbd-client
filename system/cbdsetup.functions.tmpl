@@ -180,7 +180,7 @@ parse_opts () {
         lowmem)
             CBDKIT_BUFFERS=32
             DM_READAHEAD_KB=32768
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=16 connections=24 cache_buffers=8 threads=1 rest_threads=3"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=24 connections=30 cache_buffers=8 threads=1 rest_threads=2"
             ;;
         defaults)
             CBDKIT_BUFFERS=64
