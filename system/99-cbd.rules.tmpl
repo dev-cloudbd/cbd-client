@@ -9,7 +9,23 @@ OPTIONS+="watch"
 TEST!="pid", ENV{SYSTEMD_READY}="0", GOTO="cloudbd_end"
 TEST=="$runstatedir/cloudbd/%k.stopping", GOTO="cloudbd_end"
 
+# import cloudbd udev vars
 IMPORT{file}="$runstatedir/cloudbd/\$name.udev"
-ENV{CBD_DEVICE}=="?*", ATTR{queue/max_sectors_kb}="1024", ATTR{queue/nr_requests}="128", RUN{program}+="cbd_dmsetup \$name %E{CBD_REMOTE}:%E{CBD_DEVICE} %E{CBD_UUID} %E{CBD_SIZE} %E{CBD_BLOCKSIZE} %E{CBD_READAHEAD}"
+ENV{CBD_DEVICE}!="?*", GOTO="cloudbd_end"
 
+# check client and server pids
+PROGRAM="/bin/cat %S/block/%k/pid", ENV{CBD_CLIENT_PID}="%c"
+PROGRAM="/bin/cat /var/run/cloudbd/%E{CBD_REMOTE}:%E{CBD_DEVICE}.pid", ENV{CBD_SERVER_PID}="%c"
+ENV{CBD_CLIENT_PID}=="?*", ENV{CBD_SERVER_PID}=="?*", PROGRAM="/bin/kill -0 %E{CBD_CLIENT_PID} %E{CBD_SERVER_PID}", GOTO="cloudbd_active"
+ENV{SYSTEMD_READY}="0", GOTO="cloudbd_end"
+
+# device is active, set ATTRS, start dm if needed
+LABEL="cloudbd_active"
+ATTR{queue/max_sectors_kb}="1024", ATTR{queue/nr_requests}="128"
+
+# if dm is not created, start it
+PROGRAM="/sbin/dmsetup info %E{CBD_REMOTE}:%E{CBD_DEVICE}", GOTO="cloudbd_end"
+RUN{program}+="cbd_dmsetup %k %E{CBD_REMOTE}:%E{CBD_DEVICE} %E{CBD_UUID} %E{CBD_SIZE} %E{CBD_BLOCKSIZE} %E{CBD_READAHEAD}"
+
+# end
 LABEL="cloudbd_end"

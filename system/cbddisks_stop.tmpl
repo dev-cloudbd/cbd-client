@@ -79,6 +79,7 @@ main () {
 
                 # If systemd is not managing our disk, fall back to a manual stop to allow cleanup of dm resources
                 if ! systemctl status "cbdsetup@\${disk}.service" >/dev/null 2>&1; then
+                    echo -n " * "
                     if ! do_stop "\$disk"; then
                         overall=1
                     fi

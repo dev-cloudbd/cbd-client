@@ -4,19 +4,27 @@
 
 case \$1 in
 start)
-        FORCE_START="yes"
-        do_start "\$2"
-        exit \$?
-        ;;
+	FORCE_START="yes"
+	do_start "\$2"
+	exit \$?
+	;;
 stop)
-        FORCE_STOP="yes"
-        do_stop "\$2"
-        exit \$?
-        ;;
+	FORCE_STOP="yes"
+	do_stop "\$2"
+	exit \$?
+	;;
+cleanup)
+	if /sbin/dmsetup info "\$2" >/dev/null 2>&1; then
+		FORCE_STOP="yes"
+		do_stop "\$2"
+		exit \$?
+	fi
+	exit 0
+	;;
 *)
-        echo "Unrecognized command '\$1'" 1>&2
-        exit 1
-        ;;
+	echo "Unrecognized command '\$1'" 1>&2
+	exit 1
+	;;
 esac
 
 

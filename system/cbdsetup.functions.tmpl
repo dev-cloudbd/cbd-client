@@ -396,7 +396,7 @@ handle_start () {
         fi
 
         # Start the server
-        local CLIENT_CMD="$sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C \$CBDKIT_SOCKETS -f \$CBD /dev/\$NBD"
+        local CLIENT_CMD="exec $sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C \$CBDKIT_SOCKETS -f \$CBD /dev/\$NBD"
         local SERVER_CMD="$sbindir/cbdkit -k -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
         if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
             ERRMSG="cbdkit returned with error"
