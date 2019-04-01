@@ -37,6 +37,11 @@ case "\$CBDDISKS_ENABLE" in
     ;;
 esac
 
+if [ "\$(id -u)" -ne "0" ]; then
+    >&2 echo "\$0: error - must be run as root"
+    exit 1
+fi
+
 SUBSYS="$localstatedir/lock/subsys"
 mkdir -p "\$SUBSYS"
 LOCKFILE="\$SUBSYS/cbddisks"
