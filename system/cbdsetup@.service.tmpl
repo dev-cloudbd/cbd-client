@@ -14,4 +14,5 @@ ExecStart=@systemdutildir@/systemd-cbdsetup start %i
 ExecStop=@systemdutildir@/systemd-cbdsetup stop %i
 ExecStopPost=@systemdutildir@/systemd-cbdsetup cleanup %i
 LimitMEMLOCK=infinity
+OOMScoreAdjust=-250
 PIDFile=@localstatedir@/run/cloudbd/%i.pid
