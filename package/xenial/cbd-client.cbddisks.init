@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # vim: ft=sh
 #
 # skeleton      example file to build /etc/init.d/ scripts.
@@ -36,6 +36,11 @@ case "$CBDDISKS_ENABLE" in
     exit 0
     ;;
 esac
+
+if [ "$(id -u)" -ne "0" ]; then
+    >&2 echo "$0: error - must be run as root"
+    exit 1
+fi
 
 SUBSYS="/var/lock/subsys"
 mkdir -p "$SUBSYS"
