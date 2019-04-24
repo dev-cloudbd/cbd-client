@@ -34,7 +34,9 @@ fi
 [ -x $sbindir/cbd-client ] || exit 0
 [ -x $bindir/cloudbd ] || exit 0
 if [ -x $sbindir/blkdeactivate ]; then
-    BLKDEACTIVATE="yes"
+    BLKDEACTIVATE='^(lvm|crypt|md|raid[[:digit:]]+)|cbd\$'
+else
+    BLKDEACTIVATE='^\$'
 fi
 
 # Parse cbdtab the same way the cbdsetup systemd generator does and print warnings when 
@@ -582,44 +584,45 @@ handle_stop () {
     fi
 
     # Stop all services using device cleanly before yanking the plug
-    if [ "x\$BLKDEACTIVATE" = "xyes" ]; then
-        /sbin/blkdeactivate -u -l wholevg,retry "/dev/mapper/\$CBD" >/dev/null 2>&1
-    fi
-
     local timeout=0
     while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
         local kname type mnt
-        lsblk -l --noheadings -o KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read kname type; do
-            mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
-            if [ ! -z "\$mnt" ]; then
-                [ "\$IS_SYSTEMD" = "yes" ] &&
-                        systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
-                        ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null ||
-                        umount -f "\$mnt" >/dev/null 2>&1 || break
-            fi
+        lsblk --tree --noheadings -o NAME,KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read _ kname type; do
+            # BASH Required for this regex check of types
+            if [[ "\$type" =~ \$BLKDEACTIVATE ]]; then
+                blkdeactivate -u -l wholevg,retry "/dev/\$kname" >/dev/null 2>&1
+            else
+                mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
+                if [ ! -z "\$mnt" ]; then
+                    ([ "\$IS_SYSTEMD" = "yes" ] &&
+                      systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
+                      ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null) ||
+                            umount -f "\$mnt" >/dev/null 2>&1 || break
+                fi
 
-            if [ "\$type" = "lvm" ]; then
-                local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
-                local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
-                local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
-                if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
-                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
-                            dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
+                if [ "\$type" = "lvm" ]; then
+                    local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
+                    local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
+                    local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
+                    if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
+                        lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
+                                dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
+                    fi
+                elif [ "\$type" = "crypt" ]; then
+                    local cname="\$(cat /sys/block/"\$kname"/dm/name)"
+                    if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
+                        cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
+                                cryptsetup close "\$cname" >/dev/null 2>&1 ||
+                                dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
+                    fi
+                elif [ "\$type" = "part" ]; then
+                    local pname="\$(cat /sys/block/"\$kname"/dm/name)"
+                    dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
+                elif [ "\$type" = "cbd" ]; then
+                    dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
+                elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
+                    echo 1 > "/sys/block/\$kname/bcache/stop" || true
                 fi
-            elif [ "\$type" = "crypt" ]; then
-                local cname="\$(cat /sys/block/"\$kname"/dm/name)"
-                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
-                    cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
-                            cryptsetup close "\$cname" >/dev/null 2>&1 ||
-                            dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
-                fi
-            elif [ "\$type" = "part" ]; then
-                local pname="\$(cat /sys/block/"\$kname"/dm/name)"
-                dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
-            elif [ "\$type" = "cbd" ]; then
-                dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
-            elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
-                echo 1 > "/sys/block/\$kname/bcache/stop" || true
             fi
         done
         sleep 1
