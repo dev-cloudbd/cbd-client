@@ -587,7 +587,7 @@ handle_stop () {
     local timeout=0
     while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
         local kname type mnt
-        lsblk --tree --noheadings -o NAME,KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read _ kname type; do
+        lsblk -i --noheadings -o NAME,KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read _ kname type; do
             # BASH Required for this regex check of types
             if [[ "\$type" =~ \$BLKDEACTIVATE ]]; then
                 blkdeactivate -u -l wholevg,retry "/dev/\$kname" >/dev/null 2>&1
