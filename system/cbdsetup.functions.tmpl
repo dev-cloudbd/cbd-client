@@ -590,39 +590,44 @@ handle_stop () {
         lsblk -i --noheadings -o NAME,KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read _ kname type; do
             # BASH Required for this regex check of types
             if [[ "\$type" =~ \$BLKDEACTIVATE ]]; then
+                # Attempt to stop the device using blkdeactivate (assume it is smarter than us)
                 blkdeactivate -u -l wholevg,retry "/dev/\$kname" >/dev/null 2>&1
-            else
-                mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
-                if [ ! -z "\$mnt" ]; then
-                    ([ "\$IS_SYSTEMD" = "yes" ] &&
-                      systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
-                      ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null) ||
-                            umount -f "\$mnt" >/dev/null 2>&1 || break
+                if ! [ -b "/dev/\$kname" ]; then
+                    # successful blkdeactivate stop
+                    continue
                 fi
+            fi
 
-                if [ "\$type" = "lvm" ]; then
-                    local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
-                    local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
-                    local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
-                    if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
-                        lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
-                                dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
-                    fi
-                elif [ "\$type" = "crypt" ]; then
-                    local cname="\$(cat /sys/block/"\$kname"/dm/name)"
-                    if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
-                        cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
-                                cryptsetup close "\$cname" >/dev/null 2>&1 ||
-                                dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
-                    fi
-                elif [ "\$type" = "part" ]; then
-                    local pname="\$(cat /sys/block/"\$kname"/dm/name)"
-                    dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
-                elif [ "\$type" = "cbd" ]; then
-                    dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
-                elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
-                    echo 1 > "/sys/block/\$kname/bcache/stop" || true
+            mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
+            if [ ! -z "\$mnt" ]; then
+                ([ "\$IS_SYSTEMD" = "yes" ] &&
+                  systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
+                  ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null) ||
+                        umount -f "\$mnt" >/dev/null 2>&1 || break
+            fi
+
+            if [ "\$type" = "lvm" ]; then
+                local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
+                local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
+                local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
+                if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
+                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
+                            dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
                 fi
+            elif [ "\$type" = "crypt" ]; then
+                local cname="\$(cat /sys/block/"\$kname"/dm/name)"
+                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
+                    cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
+                            cryptsetup close "\$cname" >/dev/null 2>&1 ||
+                            dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
+                fi
+            elif [ "\$type" = "part" ]; then
+                local pname="\$(cat /sys/block/"\$kname"/dm/name)"
+                dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
+            elif [ "\$type" = "cbd" ]; then
+                dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
+            elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
+                echo 1 > "/sys/block/\$kname/bcache/stop" || true
             fi
         done
         sleep 1
