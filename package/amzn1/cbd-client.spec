@@ -7,7 +7,7 @@ URL:            https://www.github.com/dev-cloudbd/cbd-client
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  glib2-devel
 Requires(pre): /usr/sbin/useradd, /usr/bin/getent, /usr/sbin/groupadd
-Requires:       cloudbd >= 2.2.4, cbdkit >= 1.4.4
+Requires:       cloudbd >= 3.0.0, cbdkit >= 1.4.4, util-linux >= 2.23, parted, coreutils, device-mapper, sed, procps, udev
 
 %pre
 /usr/bin/getent group cloudbd > /dev/null || /usr/sbin/groupadd -r cloudbd
