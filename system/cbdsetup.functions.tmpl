@@ -198,7 +198,7 @@ parse_opts () {
         gluster)
             CBDKIT_BUFFERS=128
             DM_READAHEAD_KB=16384
-            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=250 connections=64 cache_buffers=50 swath_buffers=4096 threads=3 rest_threads=3"
+            CBDKIT_PARAMS="\$CBDKIT_PARAMS block_buffers=512 connections=148 cache_buffers=50 swath_buffers=4096 threads=4 rest_threads=12"
             ;;
         threads|block_buffers|cache_buffers|swath_buffers|rest_threads| \
         asrestly_header_size|asrestly_connect_timeout_sec| \
