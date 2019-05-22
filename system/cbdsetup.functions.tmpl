@@ -1,6 +1,6 @@
 # Copyright 2019 CloudBD, LLC
 # This file is for inclusion with
-#    . $libdir/cbdsetup/cbddisks.functions
+#    . $libdir/cbdsetup/cbdsetup.functions
 # and should not be executed directly.
 
 # debug output
@@ -329,115 +329,6 @@ get_cbdtab_line_by_cbd () {
     return 0
 }
 
-# int handle_start (string nbd, string cbd [, string opts])
-# ret 0: success
-#     1: error
-#     2: ignored
-#     3: already running
-# protected by an flock on \$RUNSTATE_D/<CBD>.lock
-handle_start () {
-    # Validate inputs
-    # ERRMSG set by parse funcs
-    parse_nbd "\$1" && parse_cbd "\$2" && parse_opts "\$3" || return 1
-
-    # Ignore noauto devices
-    if [ "x\$IGNORE" = "xyes" ] && [ "x\$FORCE_START" = "x" -o "x\$FORCE_START" = "xno" ]; then
-        ERRMSG="noauto"
-        return 2
-    fi
-
-    # Skip devices already active
-    if dmsetup info "\$CBD" >/dev/null 2>&1; then
-        if cbd-client -l "\$CBD" >/dev/null 2>&1; then
-            ERRMSG="already running"
-            return 3
-        else
-            ERRMSG="device mapper busy"
-            return 1
-        fi
-    fi
-
-    local PIDFILE="\$RUNSTATE_D/\${CBD}.pid"
-    local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
-    if ! cbd-client -l "\$CBD" >/dev/null 2>&1; then
-        # Start the device server
-        # Make sure NBD device exists
-        if [ ! -b "/dev/\$NBD" ]; then
-            ERRMSG="/dev/\$NBD does not exist"
-            return 1
-        fi
-
-        # Make sure NBD device is not busy
-        if cbd-client -c "/dev/\$NBD" >/dev/null 2>&1; then
-            ERRMSG="/dev/\$NBD is busy"
-            return 1
-        fi
-
-        # Make sure NBD device is writable
-        if [ ! -w "/dev/\$NBD" ]; then
-            ERRMSG="/dev/\$NBD permission denied"
-            return 1
-        fi
-
-        local SOCKET="\$RUNSTATE_D/\${CBD}.socket"
-        local UDEV="\$RUNSTATE_D/\${NBD}.udev"
-
-        local oldpid="\$(cat "\$PIDFILE" 2>/dev/null)"
-        if [ -n "\$oldpid" ] && ps -s "\$oldpid" -o comm --noheading | grep -e cbdkit -e cbd-client -q; then
-            ERRMSG="device is shutting down"
-            return 1
-        fi
-
-        # Clean out any previous driver run files
-        rm -f "\$SOCKET" "\$PIDFILE" "\$UDEV" "\$STOPPING"
-
-        # Generate udev parameters
-        if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$((DM_READAHEAD_KB * 2)); } 2>/dev/null > "\$UDEV"; then
-            ERRMSG="unable to contact remote disk"
-            return 1
-        fi
-
-        # Start the server
-        local CLIENT_CMD="exec $sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C \$CBDKIT_SOCKETS -f \$CBD /dev/\$NBD"
-        local SERVER_CMD="$sbindir/cbdkit -k -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
-        if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
-            ERRMSG="cbdkit returned with error"
-            return 1
-        fi
-    elif [ -f "\$STOPPING" ]; then
-        ERRMSG="device is shutting down"
-        return 1
-    else
-        # Server is already active, kick udev to get device mapper started
-        udevadm trigger "/dev/\$NBD"
-    fi
-
-    local PID="\$(cat \$PIDFILE 2>/dev/null)"
-    if [ -z "\$PID" ]; then
-        ERRMSG="unable to read server pid"
-        return 1
-    fi
-
-    # Wait for udev and device mapper to pick up the new block device
-    local timeout=0
-    while [ \$timeout -lt \$CBDDISKS_START_TIMEOUT ]; do
-        # Return success if device mapper picks up \$CBD
-        [ -e /dev/mapper/"\$CBD" ] && partprobe /dev/mapper/"\$CBD" && return 0
-
-        # Check that server is still running
-        if ! ps "\$PID" >/dev/null 2>&1; then
-            ERRMSG="server exited unexpectedly"
-            return 1
-        fi
-
-        timeout=\$(( timeout + 1 ))
-        sleep 1
-    done
-
-    ERRMSG="timed out"
-    return 1
-}
-
 # int do_start ([string cbd]*)
 do_start () {
     local ret=0
@@ -474,30 +365,23 @@ do_start () {
             fi
 
             local lockfile="\$RUNSTATE_D/\${cbd}.lock"
-            exec {fd}<>"\$lockfile"
-            if ! flock \$fd; then
-                log_action_cont_msg "Starting \$CBD (failed to acquire lock)"
-                log_action_end_msg 1
-                ret=1
-                continue
-            fi
 
-            handle_start "\$nbd" "\$cbd" "\$opts"
+            ERRMSG="\$(flock -o \$lockfile bash -c ". $libdir/cbdsetup/cbdsetup.functions; _handle_start \"\$nbd\" \"\$cbd\" \"\$opts\" \"\$FORCE_START\"" 2>/dev/null)"
             case \$? in
-                0) log_action_cont_msg "Starting \$CBD (started)"
+                0) log_action_cont_msg "Starting \$cbd (started)"
                    log_action_end_msg 0
                    ;;
-                1) log_action_cont_msg "Starting \$CBD (\$ERRMSG)"
+                1) log_action_cont_msg "Starting \$cbd (\$ERRMSG)"
                    log_action_end_msg 1
                    ret=1
                    ;;
-                2) log_action_cont_msg "Skipping \$CBD (\$ERRMSG)"
+                2) log_action_cont_msg "Skipping \$cbd (\$ERRMSG)"
                    log_action_end_msg 0
                    ;;
-                3) log_action_cont_msg "Starting \$CBD (\$ERRMSG)"
+                3) log_action_cont_msg "Starting \$cbd (\$ERRMSG)"
                    log_action_end_msg 0
                    ;;
-                *) log_action_cont_msg "Starting \$CBD (unexpected return value \$?)"
+                *) log_action_cont_msg "Starting \$cbd (unexpected return value \$?)"
                    log_action_end_msg 1
                    ret=1
                    ;;
@@ -505,8 +389,6 @@ do_start () {
 
             eval "local \$nbd=1"
             eval "local \$cbdx=1"
-
-            flock -u \$fd
         done <<- EOF
 	\$(grep -vE "^[[:blank:]]*(#|\$)" "\$TABFILE" | sed 's/[[:blank:]]*#.*\$//g')
 	EOF
@@ -523,14 +405,8 @@ do_start () {
             fi
 
             local lockfile="\$RUNSTATE_D/\${CBD}.lock"
-            exec {fd}<>"\$lockfile"
-            if ! flock \$fd; then
-                log_failure_msg "Starting \$CBD (failed to acquire lock)"
-                ret=1
-                continue
-            fi
 
-            handle_start "\$NBD" "\$CBD" "\$OPTS"
+            ERRMSG="\$(flock -o \$lockfile bash -c ". $libdir/cbdsetup/cbdsetup.functions; _handle_start \"\$NBD\" \"\$CBD\" \"\$OPTS\" \"\$FORCE_START\"" 2>/dev/null)"
             case \$? in
                 0) log_success_msg "Starting \$CBD (started)"
                    ;;
@@ -545,142 +421,7 @@ do_start () {
                    ret=1
                    ;;
             esac
-
-            flock -u \$fd
         done
-    fi
-
-    return \$ret
-}
-
-# int handle_stop (string cbd)
-# protected by an flock on \$RUNSTATE_D/<CBD>.lock
-handle_stop () {
-    # Validate input
-    parse_cbd "\$1" || return 1 # ERRMSG set by parse func
-    local ret=0
-    local dmname="\$(dmsetup info -c --noheadings -o blkdevname \$CBD 2>/dev/null)"
-
-    # Check for a busy device_mapper disk and FORCE_STOP option
-    if [ -n "\$dmname" ] && [ "x\$FORCE_STOP" = "x" -o "x\$FORCE_STOP" = "xno" ]; then
-        opencount="\$(dmsetup info -c --noheadings -o open "\$CBD" 2>/dev/null)"
-        if [ -z "\$opencount" ]; then
-            ERRMSG="unable to query opencount"
-            return 1
-        elif [ "\$opencount" -ne 0 ]; then
-            ERRMSG="device busy"
-            return 1
-        fi
-    fi
-
-    # Check if device is running
-    local nbd="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -Eo '^nbd[[:digit:]]+\$')"
-
-    if [ -n "\$nbd" ] && parse_nbd "\$nbd"; then
-        # Prevent udev from starting this device
-        touch "\$RUNSTATE_D/\${NBD}.stopping"
-    else
-        nbd=""
-    fi
-
-    # Stop all services using device cleanly before yanking the plug
-    local timeout=0
-    while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
-        local kname type mnt
-        lsblk -i --noheadings -o NAME,KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read _ kname type; do
-            # BASH Required for this regex check of types
-            if [[ "\$type" =~ \$BLKDEACTIVATE ]]; then
-                # Attempt to stop the device using blkdeactivate (assume it is smarter than us)
-                blkdeactivate -u -l wholevg,retry "/dev/\$kname" >/dev/null 2>&1
-                if ! [ -b "/dev/\$kname" ]; then
-                    # successful blkdeactivate stop
-                    continue
-                fi
-            fi
-
-            mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
-            if [ ! -z "\$mnt" ]; then
-                ([ "\$IS_SYSTEMD" = "yes" ] &&
-                  systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
-                  ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null) ||
-                        umount -f "\$mnt" >/dev/null 2>&1 || break
-            fi
-
-            if [ "\$type" = "lvm" ]; then
-                local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
-                local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
-                local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
-                if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
-                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
-                            dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
-                fi
-            elif [ "\$type" = "crypt" ]; then
-                local cname="\$(cat /sys/block/"\$kname"/dm/name)"
-                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
-                    cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
-                            cryptsetup close "\$cname" >/dev/null 2>&1 ||
-                            dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
-                fi
-            elif [ "\$type" = "part" ]; then
-                local pname="\$(cat /sys/block/"\$kname"/dm/name)"
-                dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
-            elif [ "\$type" = "cbd" ]; then
-                dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
-            elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
-                echo 1 > "/sys/block/\$kname/bcache/stop" || true
-            fi
-        done
-        sleep 1
-        timeout=\$(( timeout + 1 ))
-    done
-
-    # Disconnect cloudbd from nbd
-    if [ -n "\$nbd" ]; then
-        local pid="\$(cat "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null)"
-
-        cbd-client -d "/dev/\$NBD" >/dev/null 2>&1 || true
-
-        if [ -z "\$pid" ]; then
-            while cbd-client -l "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
-                sleep 1
-                timeout=\$(( timeout + 1 ))
-            done
-
-            if cbd-client -l "\$CBD" >/dev/null 2>&1; then
-                ERRMSG="failed to stop server"
-                ret=1
-            fi
-        else
-            # Check for any processes within the session group in case of orphaned children.
-            # Normally all of these processes will stop cleanly as part of the cbd-client -d
-            # chain of events. If the parent to the server/client is killed before its children
-            # we detect this and manually TERM the children.
-            while ps -s "\$pid" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
-                ps "\$pid" >/dev/null 2>&1 || kill -TERM "-\$pid" # if parent pid of session is dead, TERM children
-                sleep 1
-                timeout=\$(( timeout + 1 ))
-            done
-
-            if ps -s "\$pid" >/dev/null 2>&1; then
-                ERRMSG="failed to stop server"
-                kill -9 "-\$pid" # final attempt to really stop all children
-                ret=1
-            fi
-
-            rm -f "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null
-        fi
-
-        # Kick udev
-        udevadm trigger "/dev/\$NBD"
-
-        [ "\$ret" -eq 0 ] && rm -f "\$RUNSTATE_D/\${NBD}.udev" "\$RUNSTATE_D/\${NBD}.stopping" || true
-    fi
-
-    if [ "\$ret" -eq 0 ] && dmsetup info "\$CBD" >/dev/null 2>&1; then
-        ret=1
-        ERRMSG="failed to stop device mapper"
-    else
-        rm -f "\$RUNSTATE_D/\${CBD}.socket"
     fi
 
     return \$ret
@@ -699,15 +440,8 @@ do_stop () {
             get_cbd_from_socket "\$socket" || continue
 
             local lockfile="\$RUNSTATE_D/\${CBD}.lock"
-            exec {fd}<>"\$lockfile"
-            if ! flock \$fd; then
-                log_action_cont_msg "Stopping \$CBD (failed to acquire lock)"
-                log_action_end_msg 1
-                ret=1
-                continue
-            fi
 
-            handle_stop "\$CBD"
+            ERRMSG="\$(flock -o \$lockfile bash -c ". $libdir/cbdsetup/cbdsetup.functions; _handle_stop \"\$CBD\" \"\$FORCE_STOP\"" 2>/dev/null)"
             case \$? in
                 0) log_action_cont_msg "Stopping \$CBD (stopped)"
                    log_action_end_msg 0
@@ -724,8 +458,6 @@ do_stop () {
                    ret=1
                    ;;
             esac
-
-            flock -u \$fd
         done
         log_action_cont_msg "CloudBD disks stopped"
         log_action_end_msg \$ret
@@ -739,14 +471,8 @@ do_stop () {
             fi
 
             local lockfile="\$RUNSTATE_D/\${CBD}.lock"
-            exec {fd}<>"\$lockfile"
-            if ! flock \$fd; then
-                log_failure_msg "Stopping \$CBD (failed to acquire lock)"
-                ret=1
-                continue
-            fi
 
-            handle_stop "\$CBD"
+            ERRMSG="\$(flock -o \$lockfile bash -c ". $libdir/cbdsetup/cbdsetup.functions; _handle_stop \"\$CBD\" \"\$FORCE_STOP\"" 2>/dev/null)"
             case \$? in
                 0) log_success_msg "Stopping \$CBD (stopped)"
                    ;;
@@ -759,8 +485,6 @@ do_stop () {
                    ret=1
                    ;;
             esac
-
-            flock -u \$fd
         done
     fi
 
@@ -939,4 +663,266 @@ log_warning_msg () {
     else
         echo " * \$@" || true
     fi
+}
+
+# NOTE: The following functions are private to cbdsetup.functions and
+# are not intended for external use by cbddisks_start or systemd.
+
+# They are called by do_start() and do_stop() using flock -o to ensure
+# that operations on disks are not racing with each other.
+
+# int _handle_start (string nbd, string cbd [, string opts, force start])
+# ret 0: success
+#     1: error
+#     2: ignored
+#     3: already running
+# stdout will contain error string for caller to capture
+# protected by an flock on \$RUNSTATE_D/<CBD>.lock
+_handle_start () {
+    # Validate inputs
+    # ERRMSG set by parse funcs
+    parse_nbd "\$1" && parse_cbd "\$2" && parse_opts "\$3" || (echo -n \$ERRMSG; return 1)
+    FORCE_START="\$4"
+
+    # Ignore noauto devices
+    if [ "x\$IGNORE" = "xyes" ] && [ "x\$FORCE_START" = "x" -o "x\$FORCE_START" = "xno" ]; then
+        echo -n "noauto"
+        return 2
+    fi
+
+    # Skip devices already active
+    if dmsetup info "\$CBD" >/dev/null 2>&1; then
+        if cbd-client -l "\$CBD" >/dev/null 2>&1; then
+            echo -n "already running"
+            return 3
+        else
+            echo -n "device mapper busy"
+            return 1
+        fi
+    fi
+
+    local PIDFILE="\$RUNSTATE_D/\${CBD}.pid"
+    local STOPPING="\$RUNSTATE_D/\${NBD}.stopping"
+    if ! cbd-client -l "\$CBD" >/dev/null 2>&1; then
+        # Start the device server
+        # Make sure NBD device exists
+        if [ ! -b "/dev/\$NBD" ]; then
+            echo -n "/dev/\$NBD does not exist"
+            return 1
+        fi
+
+        # Make sure NBD device is not busy
+        if cbd-client -c "/dev/\$NBD" >/dev/null 2>&1; then
+            echo -n "/dev/\$NBD is busy"
+            return 1
+        fi
+
+        # Make sure NBD device is writable
+        if [ ! -w "/dev/\$NBD" ]; then
+            echo -n "/dev/\$NBD permission denied"
+            return 1
+        fi
+
+        local SOCKET="\$RUNSTATE_D/\${CBD}.socket"
+        local UDEV="\$RUNSTATE_D/\${NBD}.udev"
+
+        local oldpid="\$(cat "\$PIDFILE" 2>/dev/null)"
+        if [ -n "\$oldpid" ] && ps -s "\$oldpid" -o comm --noheading | grep -e cbdkit -e cbd-client -q; then
+            echo -n "device is shutting down"
+            return 1
+        fi
+
+        # Clean out any previous driver run files
+        rm -f "\$SOCKET" "\$PIDFILE" "\$UDEV" "\$STOPPING"
+
+        # Generate udev parameters
+        if ! { /bin/cloudbd info -e "\$CBD" && echo CBD_READAHEAD=\$((DM_READAHEAD_KB * 2)); } 2>/dev/null > "\$UDEV"; then
+            echo -n "unable to contact remote disk"
+            return 1
+        fi
+
+        # Start the server
+        local CLIENT_CMD="exec $sbindir/cbd-client -t \$CBDDISKS_OP_TIMEOUT -C \$CBDKIT_SOCKETS -f \$CBD /dev/\$NBD"
+        local SERVER_CMD="$sbindir/cbdkit -k -e \$NBD --pidfile=\$PIDFILE -u \$CBDDISKS_USER -g \$CBDDISKS_GROUP -U \$SOCKET -b \$CBDKIT_BUFFERS -B 1024 cloudbd device=\$CBD \$CBDKIT_PARAMS"
+        if ! \$SERVER_CMD --run "\$CLIENT_CMD"; then
+            echo -n "cbdkit returned with error"
+            return 1
+        fi
+    elif [ -f "\$STOPPING" ]; then
+        echo -n "device is shutting down"
+        return 1
+    else
+        # Server is already active, kick udev to get device mapper started
+        udevadm trigger "/dev/\$NBD"
+    fi
+
+    local PID="\$(cat \$PIDFILE 2>/dev/null)"
+    if [ -z "\$PID" ]; then
+        echo -n "unable to read server pid"
+        return 1
+    fi
+
+    # Wait for udev and device mapper to pick up the new block device
+    local timeout=0
+    while [ \$timeout -lt \$CBDDISKS_START_TIMEOUT ]; do
+        # Return success if device mapper picks up \$CBD
+        if [ -e /dev/mapper/"\$CBD" ]; then
+            partprobe /dev/mapper/"\$CBD" 2>/dev/null
+            return 0
+        fi
+
+        # Check that server is still running
+        if ! ps "\$PID" >/dev/null 2>&1; then
+            echo -n "server exited unexpectedly"
+            return 1
+        fi
+
+        timeout=\$(( timeout + 1 ))
+        sleep 1
+    done
+
+    echo -n "timed out"
+    return 1
+}
+
+# int _handle_stop (string cbd [, force start])
+# ret 0: success
+#     1: error
+# stdout will contain error string for caller to capture
+# protected by an flock on \$RUNSTATE_D/<CBD>.lock
+_handle_stop () {
+    # Validate input
+    # ERRMSG set by parse func
+    parse_cbd "\$1" || (echo -n \$ERRMSG; return 1)
+    FORCE_STOP="\$2"
+
+    local ret=0
+    local dmname="\$(dmsetup info -c --noheadings -o blkdevname \$CBD 2>/dev/null)"
+
+    # Check for a busy device_mapper disk and FORCE_STOP option
+    if [ -n "\$dmname" ] && [ "x\$FORCE_STOP" = "x" -o "x\$FORCE_STOP" = "xno" ]; then
+        opencount="\$(dmsetup info -c --noheadings -o open "\$CBD" 2>/dev/null)"
+        if [ -z "\$opencount" ]; then
+            echo -n "unable to query opencount"
+            return 1
+        elif [ "\$opencount" -ne 0 ]; then
+            echo -n "device busy"
+            return 1
+        fi
+    fi
+
+    # Check if device is running
+    local nbd="\$(cbd-client -l "\$CBD" 2>/dev/null | grep -Eo '^nbd[[:digit:]]+\$')"
+
+    if [ -n "\$nbd" ] && parse_nbd "\$nbd"; then
+        # Prevent udev from starting this device
+        touch "\$RUNSTATE_D/\${NBD}.stopping"
+    else
+        nbd=""
+    fi
+
+    # Stop all services using device cleanly before yanking the plug
+    local timeout=0
+    while dmsetup info "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
+        local kname type mnt
+        lsblk -i --noheadings -o NAME,KNAME,TYPE "/dev/\$dmname" 2>/dev/null | tac | while read _ kname type; do
+            # BASH Required for this regex check of types
+            if [[ "\$type" =~ \$BLKDEACTIVATE ]]; then
+                # Attempt to stop the device using blkdeactivate (assume it is smarter than us)
+                blkdeactivate -u -l wholevg,retry "/dev/\$kname" >/dev/null 2>&1
+                if ! [ -b "/dev/\$kname" ]; then
+                    # successful blkdeactivate stop
+                    continue
+                fi
+            fi
+
+            mnt="\$(findmnt -n -oTARGET "/dev/\$kname" 2>/dev/null)"
+            if [ ! -z "\$mnt" ]; then
+                ([ "\$IS_SYSTEMD" = "yes" ] &&
+                  systemctl stop "\$(systemd-escape "\${mnt##/}" 2>/dev/null).mount" >/dev/null 2>&1 &&
+                  ! findmnt -n -oTARGET "/dev/\$kname" >/dev/null 2>/dev/null) ||
+                        umount -f "\$mnt" >/dev/null 2>&1 || break
+            fi
+
+            if [ "\$type" = "lvm" ]; then
+                local lvmname="\$(cat /sys/block/"\$kname"/dm/name 2>/dev/null)"
+                local lvname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o lv_name 2>/dev/null)"
+                local vgname="\$(dmsetup splitname --noheadings "\$lvmname" -c -o vg_name 2>/dev/null)"
+                if [ ! -z "\$lvname" ] && [ ! -z "\$vgname" ]; then
+                    lvchange -an "\$vgname/\$lvname" >/dev/null 2>&1 ||
+                            dmsetup remove --retry "\$lvmname" >/dev/null 2>&1 || true
+                fi
+            elif [ "\$type" = "crypt" ]; then
+                local cname="\$(cat /sys/block/"\$kname"/dm/name)"
+                if [ -z "\$IS_SYSTEMD" ] || ! systemctl stop "systemd-cryptsetup@\${cname}.service" >/dev/null 2>&1; then
+                    cryptdisks_stop "\$cname" >/dev/null 2>&1 ||
+                            cryptsetup close "\$cname" >/dev/null 2>&1 ||
+                            dmsetup remove --retry "\$cname" >/dev/null 2>&1 || true
+                fi
+            elif [ "\$type" = "part" ]; then
+                local pname="\$(cat /sys/block/"\$kname"/dm/name)"
+                dmsetup remove --retry "\$pname" >/dev/null 2>&1 || true
+            elif [ "\$type" = "cbd" ]; then
+                dmsetup remove --retry "\$CBD" >/dev/null 2>&1 || true
+            elif [ "\$type" = "disk" ] && expr "x\$kname" : "xbcache[[:digit:]]\+\$" >/dev/null; then
+                echo 1 > "/sys/block/\$kname/bcache/stop" || true
+            fi
+        done
+        sleep 1
+        timeout=\$(( timeout + 1 ))
+    done
+
+    # Disconnect cloudbd from nbd
+    if [ -n "\$nbd" ]; then
+        local pid="\$(cat "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null)"
+
+        cbd-client -d "/dev/\$NBD" >/dev/null 2>&1 || true
+
+        if [ -z "\$pid" ]; then
+            while cbd-client -l "\$CBD" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
+                sleep 1
+                timeout=\$(( timeout + 1 ))
+            done
+
+            if cbd-client -l "\$CBD" >/dev/null 2>&1; then
+                ERRMSG="failed to stop server"
+                ret=1
+            fi
+        else
+            # Check for any processes within the session group in case of orphaned children.
+            # Normally all of these processes will stop cleanly as part of the cbd-client -d
+            # chain of events. If the parent to the server/client is killed before its children
+            # we detect this and manually TERM the children.
+            while ps -s "\$pid" >/dev/null 2>&1 && [ \$timeout -lt \$CBDDISKS_STOP_TIMEOUT ]; do
+                ps "\$pid" >/dev/null 2>&1 || kill -TERM "-\$pid" # if parent pid of session is dead, TERM children
+                sleep 1
+                timeout=\$(( timeout + 1 ))
+            done
+
+            if ps -s "\$pid" >/dev/null 2>&1; then
+                ERRMSG="failed to stop server"
+                kill -9 "-\$pid" # final attempt to really stop all children
+                ret=1
+            fi
+
+            rm -f "\$RUNSTATE_D/\${CBD}.pid" 2>/dev/null
+        fi
+
+        # Kick udev
+        udevadm trigger "/dev/\$NBD"
+
+        [ "\$ret" -eq 0 ] && rm -f "\$RUNSTATE_D/\${NBD}.udev" "\$RUNSTATE_D/\${NBD}.stopping" || true
+    fi
+
+    if [ "\$ret" -eq 0 ] && dmsetup info "\$CBD" >/dev/null 2>&1; then
+        ret=1
+        ERRMSG="failed to stop device mapper"
+    else
+        rm -f "\$RUNSTATE_D/\${CBD}.socket"
+    fi
+
+    if [ "\$ret" -ne 0 ]; then
+        echo -n \$ERRMSG
+    fi
+    return \$ret
 }

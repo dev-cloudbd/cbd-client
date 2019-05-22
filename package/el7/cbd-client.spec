@@ -12,7 +12,7 @@ Requires(pre): /usr/sbin/useradd, /usr/bin/getent, /usr/sbin/groupadd
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-Requires:       cloudbd >= 2.2.4, cbdkit >= 1.4.4
+Requires:       cloudbd >= 3.0.0, cbdkit >= 1.4.4, util-linux >= 2.23, parted, coreutils, device-mapper, sed, procps, udev
 
 %description 
 Tools for the Linux Kernel's network block device, allowing you to use
