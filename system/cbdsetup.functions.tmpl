@@ -52,7 +52,17 @@ check_systemd_cbdtab () {
         fi
 
         if [ "x\$CBD" = "x" ] || ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$' >/dev/null; then
-            log_warning_msg "WARNING: cbdtab has invalid remote:disk '\$CBD'"
+            log_warning_msg "WARNING: cbdtab has invalid characters in remote:disk (alphanumeric, '-', and '_' only) '\$CBD'"
+            continue
+        fi
+
+        if ! expr "x\$CBD" : 'x[[:alnum:]_-]\{1,32\}:[[:alnum:]_-]\+\$' >/dev/null; then
+            log_warning_msg "WARNING: cbdtab remote name too long (max 32 characters) '\$CBD'"
+            continue
+        fi
+
+        if ! expr "x\$CBD" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\{1,48\}\$' >/dev/null; then
+            log_warning_msg "WARNING: cbdtab disk name too long (max 48 characters) '\$CBD'"
             continue
         fi
 
@@ -119,8 +129,18 @@ get_cbd_from_socket () {
 parse_cbd () {
     ERRMSG=""
 
-    if ! expr "x\$1" : "x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$" >/dev/null; then
-        ERRMSG="bad value for cbd"
+    if [ "x\$1" = "x" ] || ! expr "x\$1" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\+\$' >/dev/null; then
+        ERRMSG="bad value for cbd: invalid characters (alphanumeric, '-', and '_' only)"
+        return 1
+    fi
+
+    if ! expr "x\$1" : 'x[[:alnum:]_-]\{1,32\}:[[:alnum:]_-]\+\$' >/dev/null; then
+        ERRMSG="bad value for cbd: remote name too long (max 32 characters)"
+        return 1
+    fi
+
+    if ! expr "x\$1" : 'x[[:alnum:]_-]\+:[[:alnum:]_-]\{1,48\}\$' >/dev/null; then
+        ERRMSG="bad value for cbd: disk name too long (max 48 characters)"
         return 1
     fi
 
