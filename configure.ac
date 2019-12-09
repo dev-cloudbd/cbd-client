@@ -3,7 +3,7 @@ dnl (c) 1998 Martin Mares <mj@ucw.cz>, (c) 2000 Pavel Machek <pavel@ucw.cz>,
 dnl (c) 2003-2006 Wouter Verhelst <wouter@debian.org>
 dnl (c) 2017 CloudBD, LLC
 AC_INIT([cbd-client],
-  [4.0.12],
+  [4.0.13],
   [smcdowell@cloudbd.io],,
   [https://www.github.com/dev-cloudbd/cbd-client/])
 

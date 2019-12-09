@@ -2,4 +2,4 @@ cbd-client (@PACKAGE_VERSION@-@PACKAGE_TAG@) cloudbd; urgency=medium
 
   * Release @PACKAGE_VERSION@-@PACKAGE_TAG@
 
- -- CloudBD, LLC <support@cloudbd.io>  Tue, 28 May 2019 09:00:00 -0400
+ -- CloudBD, LLC <support@cloudbd.io>  Mon, 09 Dec 2019 09:00:00 -0500
