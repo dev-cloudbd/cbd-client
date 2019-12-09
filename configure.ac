@@ -130,7 +130,6 @@ AC_CONFIG_FILES([Makefile
 		 system/cbdsetup.functions.sh
 		 system/systemd-cbdsetup.sh
 		 system/cloudbd.completion.sh
-                 package/trusty/changelog
                  package/xenial/changelog
 		])
 AC_OUTPUT
